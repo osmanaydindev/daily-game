@@ -13,6 +13,7 @@ const schema = z.object({
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),
   ADMIN_DISPLAY_NAME: z.string().optional(),
+  ADMIN_USERNAME: z.string().min(3).max(20).optional(),
 });
 
 const parsed = schema.safeParse(process.env);

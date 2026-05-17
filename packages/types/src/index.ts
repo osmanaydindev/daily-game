@@ -17,6 +17,7 @@ export interface ApiResponse<T = unknown> {
 
 export interface UserPublic {
   _id: string;
+  username: string;
   displayName: string;
   avatarUrl?: string;
   role: Role;
@@ -78,6 +79,7 @@ export interface DailyEntryPublic {
 export interface LeaderboardEntry {
   rank: number;
   userId: string;
+  username: string;
   displayName: string;
   avatarUrl?: string;
   normalizedScore: number;
@@ -114,6 +116,7 @@ export interface AuthResponse {
 export interface CreateUserRequest {
   email: string;
   password: string;
+  username: string;
   displayName: string;
   role?: Role;
 }

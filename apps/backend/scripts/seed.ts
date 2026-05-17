@@ -23,18 +23,27 @@ async function seed(): Promise<void> {
     process.exit(1);
   }
 
+  const adminUsername = env.ADMIN_USERNAME ?? env.ADMIN_EMAIL.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 20);
+
   const existingAdmin = await User.findOne({ email: env.ADMIN_EMAIL.toLowerCase() });
   if (existingAdmin) {
-    console.log(`ℹ️  Admin already exists: ${env.ADMIN_EMAIL}`);
+    if (!existingAdmin.username) {
+      existingAdmin.username = adminUsername;
+      await existingAdmin.save();
+      console.log(`ℹ️  Admin username backfilled: @${adminUsername}`);
+    } else {
+      console.log(`ℹ️  Admin already exists: ${env.ADMIN_EMAIL}`);
+    }
   } else {
     const passwordHash = await hashPassword(env.ADMIN_PASSWORD);
     await User.create({
       email: env.ADMIN_EMAIL.toLowerCase(),
+      username: adminUsername,
       displayName: env.ADMIN_DISPLAY_NAME,
       passwordHash,
       role: 'admin',
     });
-    console.log(`✅ Admin created: ${env.ADMIN_EMAIL}`);
+    console.log(`✅ Admin created: ${env.ADMIN_EMAIL} (@${adminUsername})`);
   }
 
   // ─── Seed games ───────────────────────────────────────────────────────────

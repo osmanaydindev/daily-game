@@ -45,7 +45,7 @@
   "entry": {
     "title": "Submit Today's Score",
     "subtitle": "Select a game and enter your result.",
-    "alreadySubmitted": "You've already submitted a score for this game today",
+    "alreadySubmitted": "You've already submitted your {game} score today. It cannot be changed.",
     "successWordle": "Wordle score submitted!",
     "successParolla": "Parolla score submitted!",
     "submitting": "Submitting...",
@@ -55,19 +55,28 @@
       "label": "Solved in attempt # (1-6, 7=DNF)"
     },
     "parolla": {
-      "correct": "Correct",
+      "correct": "Correct (max 26)",
       "wrong": "Wrong",
-      "blank": "Blank"
+      "blank": "Blank",
+      "scoringNote": "Every 3 wrong answers cancel 1 correct. Full score: 26 correct, 0 wrong."
     }
   },
   "profile": {
     "title": "Profile",
+    "profileSection": "Profile Info",
+    "passwordSection": "Change Password",
+    "username": "Username",
     "displayName": "Display Name",
     "avatarUrl": "Avatar URL (HTTPS only)",
     "avatarHelper": "Must be an HTTPS URL. Leave blank to use initials.",
     "saveSuccess": "Profile updated!",
     "saveButton": "Save Changes",
-    "email": "Email"
+    "email": "Email",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "changePassword": "Change Password",
+    "passwordSuccess": "Password changed successfully!"
   },
   "history": {
     "title": "Score History",

@@ -45,7 +45,7 @@
   "entry": {
     "title": "Bugünkü Skorunu Gir",
     "subtitle": "Bir oyun seç ve sonucunu gir.",
-    "alreadySubmitted": "Bu oyun için bugün zaten skor girdin",
+    "alreadySubmitted": "{game} için bugün zaten skor girdin. Değiştiremezsin.",
     "successWordle": "Wordle skoru kaydedildi!",
     "successParolla": "Parolla skoru kaydedildi!",
     "submitting": "Kaydediliyor...",
@@ -55,19 +55,28 @@
       "label": "Kaçıncı denemede çözdün? (1-6, 7=TBK)"
     },
     "parolla": {
-      "correct": "Doğru",
+      "correct": "Doğru (maks. 26)",
       "wrong": "Yanlış",
-      "blank": "Boş"
+      "blank": "Boş",
+      "scoringNote": "Her 3 yanlış, 1 doğruyu götürür. Tam puan: 26 doğru, 0 yanlış."
     }
   },
   "profile": {
     "title": "Profil",
+    "profileSection": "Profil Bilgileri",
+    "passwordSection": "Şifre Değiştir",
+    "username": "Kullanıcı Adı",
     "displayName": "Görünen Ad",
     "avatarUrl": "Avatar URL (sadece HTTPS)",
     "avatarHelper": "HTTPS URL olmalı. Boş bırakırsan baş harflerin kullanılır.",
     "saveSuccess": "Profil güncellendi!",
     "saveButton": "Kaydet",
-    "email": "E-posta"
+    "email": "E-posta",
+    "currentPassword": "Mevcut Şifre",
+    "newPassword": "Yeni Şifre",
+    "confirmPassword": "Yeni Şifre (Tekrar)",
+    "changePassword": "Şifreyi Değiştir",
+    "passwordSuccess": "Şifre başarıyla değiştirildi!"
   },
   "history": {
     "title": "Skor Geçmişi",

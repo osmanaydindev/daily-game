@@ -28,6 +28,11 @@ import Link from 'next/link';
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
+  username: z
+    .string()
+    .min(3, 'En az 3 karakter')
+    .max(20, 'En fazla 20 karakter')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Sadece harf, rakam ve _'),
   displayName: z.string().min(1).max(50).trim(),
   role: z.enum(['user', 'admin']),
 });
@@ -101,8 +106,15 @@ export default function CreateUserPage() {
                 </Alert.Root>
               )}
 
+              <Field.Root invalid={!!errors.username}>
+                <Field.Label fontWeight="600">Kullanıcı Adı</Field.Label>
+                <Input placeholder="kullanici_adi" {...register('username')} />
+                <Field.HelperText>3–20 karakter, harf/rakam/_</Field.HelperText>
+                {errors.username && <Field.ErrorText>{errors.username.message}</Field.ErrorText>}
+              </Field.Root>
+
               <Field.Root invalid={!!errors.displayName}>
-                <Field.Label fontWeight="600">Display Name</Field.Label>
+                <Field.Label fontWeight="600">Görünen Ad</Field.Label>
                 <Input placeholder="Jane Doe" {...register('displayName')} />
                 {errors.displayName && <Field.ErrorText>{errors.displayName.message}</Field.ErrorText>}
               </Field.Root>

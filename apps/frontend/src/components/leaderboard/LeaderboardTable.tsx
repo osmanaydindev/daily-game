@@ -1,7 +1,6 @@
 'use client';
 
 import { Table, Avatar, Badge, HStack, Text, Box } from '@chakra-ui/react';
-import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import type { LeaderboardEntry, WordleScores, ParollaScores } from '@dail-game/types';
 
@@ -10,7 +9,6 @@ interface LeaderboardTableProps {
   title: string;
   scoreLabel?: string;
 }
-
 
 function formatRawScore(entry: LeaderboardEntry, dnfLabel: string): string | null {
   if (!entry.rawScores || !entry.gameSlug) return null;
@@ -25,15 +23,15 @@ function formatRawScore(entry: LeaderboardEntry, dnfLabel: string): string | nul
   return null;
 }
 
-function ScoreBar({ score, index }: { score: number; index: number }) {
+function ScoreBar({ score }: { score: number }) {
   return (
     <HStack gap={2} justify="flex-end">
       <Box h="6px" w="60px" bg="border.subtle" borderRadius="full" overflow="hidden" display={{ base: 'none', sm: 'block' }}>
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${score * 100}%` }}
-          transition={{ duration: 0.7, delay: 0.1 + index * 0.04, ease: [0.25, 0.46, 0.45, 0.94] }}
-          style={{ height: '100%', background: '#3a5fff', borderRadius: '9999px' }}
+        <Box
+          h="full"
+          bg="brand.500"
+          borderRadius="full"
+          style={{ width: `${score * 100}%`, transition: 'width 0.5s ease' }}
         />
       </Box>
       <Text fontSize="sm" fontWeight="600" fontFamily="mono" textAlign="right">
@@ -65,25 +63,14 @@ export function LeaderboardTable({ entries, title, scoreLabel }: LeaderboardTabl
           </Table.Row>
         </Table.Header>
         <Table.Body>
-          {entries.map((entry, index) => {
+          {entries.map((entry) => {
             const rawDisplay = formatRawScore(entry, t('dnf'));
             return (
-              <Table.Row
-                key={entry.userId}
-                style={{
-                  animation: `ao-row-in 0.32s ease-out ${index * 0.05}s both`,
-                }}
-              >
+              <Table.Row key={entry.userId}>
                 <Table.Cell>
-                  <motion.div
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.3, delay: 0.1 + index * 0.05, type: 'spring', stiffness: 300 }}
-                  >
-                    <Text fontSize="md" fontWeight="700" color={entry.rank <= 3 ? 'brand.500' : 'text.muted'}>
-                      {entry.rank}
-                    </Text>
-                  </motion.div>
+                  <Text fontSize="md" fontWeight="700" color={entry.rank <= 3 ? 'brand.500' : 'text.muted'}>
+                    {entry.rank}
+                  </Text>
                 </Table.Cell>
                 <Table.Cell maxW={{ base: '130px', sm: 'unset' }}>
                   <HStack gap={2}>
@@ -91,16 +78,14 @@ export function LeaderboardTable({ entries, title, scoreLabel }: LeaderboardTabl
                       <Avatar.Fallback name={entry.displayName} />
                       {entry.avatarUrl && <Avatar.Image src={entry.avatarUrl} alt={entry.displayName} />}
                     </Avatar.Root>
-                    <Text fontWeight="500" fontSize="sm" truncate>{entry.displayName}</Text>
+                    <Box>
+                      <Text fontWeight="600" fontSize="sm" truncate>@{entry.username}</Text>
+                      <Text fontSize="xs" color="text.muted" truncate>{entry.displayName}</Text>
+                    </Box>
                     {topScore !== null && entry.normalizedScore === topScore && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 400, delay: 0.3 }}
-                        style={{ flexShrink: 0 }}
-                      >
-                        <Badge colorPalette="yellow" size="sm" variant="subtle" display={{ base: 'none', sm: 'inline-flex' }}>{t('leader')}</Badge>
-                      </motion.div>
+                      <Badge colorPalette="yellow" size="sm" variant="subtle" display={{ base: 'none', sm: 'inline-flex' }} flexShrink={0}>
+                        {t('leader')}
+                      </Badge>
                     )}
                   </HStack>
                 </Table.Cell>
@@ -112,7 +97,7 @@ export function LeaderboardTable({ entries, title, scoreLabel }: LeaderboardTabl
                   )}
                 </Table.Cell>
                 <Table.Cell>
-                  <ScoreBar score={entry.normalizedScore} index={index} />
+                  <ScoreBar score={entry.normalizedScore} />
                 </Table.Cell>
               </Table.Row>
             );

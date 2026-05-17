@@ -3,6 +3,7 @@ import type { Role } from '@dail-game/types';
 
 export interface IUser extends Document {
   email: string;
+  username: string;
   displayName: string;
   passwordHash: string;
   role: Role;
@@ -16,6 +17,7 @@ export interface IUser extends Document {
 const userSchema = new Schema<IUser>(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    username: { type: String, required: true, unique: true, trim: true, minlength: 3, maxlength: 20 },
     displayName: { type: String, required: true, trim: true, maxlength: 50 },
     passwordHash: { type: String, required: true, select: false },
     role: { type: String, enum: ['admin', 'user'], default: 'user' },

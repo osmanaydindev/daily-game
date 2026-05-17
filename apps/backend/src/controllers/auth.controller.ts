@@ -41,6 +41,7 @@ export async function login(req: Request, res: Response): Promise<void> {
       user: {
         _id: user.id,
         email: user.email,
+        username: user.username,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
         role: user.role,

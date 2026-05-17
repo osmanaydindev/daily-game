@@ -16,14 +16,13 @@ function normalizeWordle(scores: Record<string, number>): number {
   return (7 - attempt) / 6;
 }
 
-// Parolla: correct / (correct + wrong + blank)  → [0.0, 1.0]
+// Parolla: max correct = 26, penalty: every 3 wrong removes 1 correct
+// effective = max(0, correct - wrong/3) / 26  → [0.0, 1.0]
 function normalizeParolla(scores: Record<string, number>): number {
   const correct = scores['correct'] ?? 0;
   const wrong = scores['wrong'] ?? 0;
-  const blank = scores['blank'] ?? 0;
-  const total = correct + wrong + blank;
-  if (total === 0) return 0;
-  return correct / total;
+  const effective = Math.max(0, correct - wrong / 3);
+  return effective / 26;
 }
 
 export const GAME_CONFIG: Record<GameSlug, GameConfig> = {

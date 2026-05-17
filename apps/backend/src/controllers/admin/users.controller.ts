@@ -16,13 +16,19 @@ export async function listUsers(req: Request, res: Response): Promise<void> {
 
 export async function createUser(req: Request, res: Response): Promise<void> {
   try {
-    const { email, password, displayName, role } = req.body as CreateUserInput;
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) { conflict(res, 'Email already in use'); return; }
+    const { email, password, username, displayName, role } = req.body as CreateUserInput;
+
+    const existing = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });
+    if (existing) {
+      if (existing.email === email.toLowerCase()) { conflict(res, 'Email already in use'); return; }
+      conflict(res, 'Username already taken');
+      return;
+    }
 
     const passwordHash = await hashPassword(password);
     const user = await User.create({
       email: email.toLowerCase(),
+      username,
       displayName,
       passwordHash,
       role,
@@ -32,6 +38,7 @@ export async function createUser(req: Request, res: Response): Promise<void> {
     created(res, {
       _id: user.id,
       email: user.email,
+      username: user.username,
       displayName: user.displayName,
       role: user.role,
       createdAt: user.createdAt,
