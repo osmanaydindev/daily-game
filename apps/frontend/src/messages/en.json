@@ -1,0 +1,151 @@
+{
+  "nav": {
+    "home": "Home",
+    "leaderboard": "Leaderboard",
+    "history": "History",
+    "games": "Games",
+    "profile": "Profile",
+    "admin": "Admin",
+    "logout": "Log out",
+    "login": "Log in",
+    "submitScore": "Submit Score",
+    "switchLanguage": "Language"
+  },
+  "auth": {
+    "login": "Log in",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Sign in",
+    "invalidCredentials": "Invalid email or password",
+    "signingIn": "Signing in...",
+    "subtitle": "Sign in to track your daily scores",
+    "backToHome": "Back to home"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "totalScore": "Total Score",
+    "wordleScore": "Wordle",
+    "parollaScore": "Parolla",
+    "empty": "No scores yet for this period",
+    "dnf": "DNF",
+    "overall": "Overall",
+    "leader": "Leader",
+    "noWordle": "No Wordle scores",
+    "noParolla": "No Parolla scores",
+    "noCombined": "No combined scores",
+    "beFirst": "Be first to submit!",
+    "submitBoth": "Submit both games to rank!",
+    "today": "Today",
+    "prevDay": "Previous day",
+    "nextDay": "Next day"
+  },
+  "entry": {
+    "title": "Submit Today's Score",
+    "subtitle": "Select a game and enter your result.",
+    "alreadySubmitted": "You've already submitted a score for this game today",
+    "successWordle": "Wordle score submitted!",
+    "successParolla": "Parolla score submitted!",
+    "submitting": "Submitting...",
+    "submitWordle": "Submit Wordle Score",
+    "submitParolla": "Submit Parolla Score",
+    "wordle": {
+      "label": "Solved in attempt # (1-6, 7=DNF)"
+    },
+    "parolla": {
+      "correct": "Correct",
+      "wrong": "Wrong",
+      "blank": "Blank"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "displayName": "Display Name",
+    "avatarUrl": "Avatar URL (HTTPS only)",
+    "avatarHelper": "Must be an HTTPS URL. Leave blank to use initials.",
+    "saveSuccess": "Profile updated!",
+    "saveButton": "Save Changes",
+    "email": "Email"
+  },
+  "history": {
+    "title": "Score History",
+    "subtitle": "All your submitted game results.",
+    "filterByGame": "Filter by game",
+    "allGames": "All games",
+    "noEntries": "No entries found",
+    "noEntriesDesc": "Submit your first score to see it here.",
+    "date": "Date",
+    "game": "Game",
+    "result": "Result",
+    "score": "Score",
+    "clearFilters": "Clear filters"
+  },
+  "games": {
+    "title": "Games",
+    "subtitle": "Submit your daily results for these games to climb the leaderboard.",
+    "playNow": "Play now →",
+    "scoring": "SCORING",
+    "daily": "Daily",
+    "wordle": {
+      "description": "Guess the hidden 5-letter word in 6 tries. One new word every day.",
+      "scoring": "Fewer attempts = higher score. DNF = 0 points."
+    },
+    "parolla": {
+      "description": "The Turkish word-association game. Match words to their categories.",
+      "scoring": "More correct answers = higher score."
+    }
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "users": "Users",
+    "entries": "Entries",
+    "totalUsers": "Total Users",
+    "totalEntries": "Total Entries",
+    "activeUsers": "Active Users",
+    "createUser": "Create User",
+    "userCreated": "User created successfully",
+    "editEntry": "Edit Entry",
+    "entryUpdated": "Entry updated",
+    "manageUsers": "User Management",
+    "manageEntries": "Entry Management",
+    "manageUsersDesc": "Create, edit, and deactivate users.",
+    "manageEntriesDesc": "View and edit any user's daily entries.",
+    "deactivate": "Deactivate",
+    "deactivateConfirm": "Deactivate this user?",
+    "deactivated": "User deactivated",
+    "deactivateFailed": "Failed to deactivate user",
+    "backToUsers": "← Back to Users",
+    "createUserTitle": "Create User",
+    "role": "Role",
+    "creating": "Creating...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "clearFilters": "Clear filters",
+    "allGames": "All games"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "noData": "No data yet",
+    "rank": "Rank",
+    "score": "Score",
+    "player": "Player",
+    "date": "Date",
+    "today": "Today",
+    "active": "Active",
+    "inactive": "Inactive",
+    "joined": "Joined",
+    "result": "Result"
+  },
+  "home": {
+    "title": "Daily Game",
+    "titleHighlight": "Leaderboard",
+    "subtitle": "Track your Wordle and Parolla scores. Compete daily, weekly, and monthly.",
+    "submitScore": "Submit Today's Score →",
+    "fullLeaderboard": "Full Leaderboard"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "dail-game",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/backend\" \"npm run dev --workspace=apps/frontend\"",
+    "build": "npm run build --workspace=apps/backend && npm run build --workspace=apps/frontend",
+    "seed": "npm run seed --workspace=apps/backend",
+    "lint": "npm run lint --workspace=apps/backend && npm run lint --workspace=apps/frontend",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\" --ignore-path .gitignore"
+  },
+  "overrides": {
+    "postcss": ">=8.5.10"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "prettier": "^3.5.3"
+  }
+}

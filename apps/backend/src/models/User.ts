@@ -1,0 +1,31 @@
+import mongoose, { Document, Schema } from 'mongoose';
+import type { Role } from '@dail-game/types';
+
+export interface IUser extends Document {
+  email: string;
+  displayName: string;
+  passwordHash: string;
+  role: Role;
+  avatarUrl?: string;
+  isActive: boolean;
+  createdBy?: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const userSchema = new Schema<IUser>(
+  {
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    displayName: { type: String, required: true, trim: true, maxlength: 50 },
+    passwordHash: { type: String, required: true, select: false },
+    role: { type: String, enum: ['admin', 'user'], default: 'user' },
+    avatarUrl: { type: String, default: undefined },
+    isActive: { type: Boolean, default: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: undefined },
+  },
+  { timestamps: true },
+);
+
+userSchema.index({ role: 1 }); // email index is implicit from unique:true
+
+export const User = mongoose.model<IUser>('User', userSchema);

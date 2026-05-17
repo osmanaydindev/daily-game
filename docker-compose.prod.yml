@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: dail-game-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    # No external port — accessible only within Docker network
+    networks:
+      - internal
+    environment:
+      MONGO_INITDB_DATABASE: dail-game
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: dail-game-api
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongodb:27017/dail-game
+    ports:
+      - '127.0.0.1:5002:5000'
+    networks:
+      - internal
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    container_name: dail-game-web
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3004:3000'
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  mongo_data:

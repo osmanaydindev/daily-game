@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: dail-game-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - '27018:27017'
+    environment:
+      MONGO_INITDB_DATABASE: dail-game
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: dail-game-api
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/dail-game
+      FRONTEND_URL: http://localhost:3004
+    ports:
+      - '5002:5000'
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5002/api
+    container_name: dail-game-web
+    restart: unless-stopped
+    env_file:
+      - ./apps/frontend/.env.local
+    ports:
+      - '3004:3000'
+
+volumes:
+  mongo_data:

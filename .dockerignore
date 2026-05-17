@@ -1,0 +1,7 @@
+node_modules
+**/node_modules
+apps/frontend/.next
+apps/backend/dist
+.git
+.idea
+npm-debug.log

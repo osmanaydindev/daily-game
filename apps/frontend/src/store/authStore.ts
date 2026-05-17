@@ -1,0 +1,70 @@
+'use client';
+
+import { create } from 'zustand';
+import type { UserSelf } from '@dail-game/types';
+import { api, setAccessToken } from '@/lib/api';
+
+interface AuthState {
+  user: UserSelf | null;
+  accessToken: string | null;
+  isLoading: boolean;
+  isInitialized: boolean;
+
+  login(email: string, password: string): Promise<void>;
+  logout(): Promise<void>;
+  refresh(): Promise<boolean>;
+  updateUser(updates: Partial<UserSelf>): void;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  accessToken: null,
+  isLoading: false,
+  isInitialized: false,
+
+  async login(email: string, password: string): Promise<void> {
+    set({ isLoading: true });
+    try {
+      const { data } = await api.post<{ data: { user: UserSelf; accessToken: string } }>('/auth/login', {
+        email,
+        password,
+      });
+      const { user, accessToken } = data.data;
+      setAccessToken(accessToken);
+      set({ user, accessToken, isLoading: false });
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      setAccessToken(null);
+      set({ user: null, accessToken: null });
+    }
+  },
+
+  async refresh(): Promise<boolean> {
+    try {
+      const { data } = await api.post<{ data: { accessToken: string } }>('/auth/refresh');
+      const { accessToken } = data.data;
+      setAccessToken(accessToken);
+
+      // Fetch user profile
+      const userRes = await api.get<{ data: UserSelf }>('/users/me');
+      set({ user: userRes.data.data, accessToken, isInitialized: true });
+      return true;
+    } catch {
+      set({ user: null, accessToken: null, isInitialized: true });
+      return false;
+    }
+  },
+
+  updateUser(updates: Partial<UserSelf>): void {
+    const current = get().user;
+    if (current) set({ user: { ...current, ...updates } });
+  },
+}));

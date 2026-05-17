@@ -1,0 +1,151 @@
+{
+  "nav": {
+    "home": "Ana Sayfa",
+    "leaderboard": "Sıralama",
+    "history": "Geçmiş",
+    "games": "Oyunlar",
+    "profile": "Profil",
+    "admin": "Yönetici",
+    "logout": "Çıkış Yap",
+    "login": "Giriş Yap",
+    "submitScore": "Skor Gir",
+    "switchLanguage": "Dil"
+  },
+  "auth": {
+    "login": "Giriş Yap",
+    "email": "E-posta",
+    "password": "Şifre",
+    "loginButton": "Giriş Yap",
+    "invalidCredentials": "Geçersiz e-posta veya şifre",
+    "signingIn": "Giriş yapılıyor...",
+    "subtitle": "Günlük skorlarını takip etmek için giriş yap",
+    "backToHome": "Ana sayfaya dön"
+  },
+  "leaderboard": {
+    "title": "Sıralama",
+    "daily": "Günlük",
+    "weekly": "Haftalık",
+    "monthly": "Aylık",
+    "totalScore": "Toplam Skor",
+    "wordleScore": "Wordle",
+    "parollaScore": "Parolla",
+    "empty": "Bu dönem için henüz skor yok",
+    "dnf": "TBK",
+    "overall": "Genel",
+    "leader": "Lider",
+    "noWordle": "Wordle skoru yok",
+    "noParolla": "Parolla skoru yok",
+    "noCombined": "Genel skor yok",
+    "beFirst": "İlk sen gir!",
+    "submitBoth": "İkisini de gir ve sıralamaya katıl!",
+    "today": "Bugün",
+    "prevDay": "Önceki gün",
+    "nextDay": "Sonraki gün"
+  },
+  "entry": {
+    "title": "Bugünkü Skorunu Gir",
+    "subtitle": "Bir oyun seç ve sonucunu gir.",
+    "alreadySubmitted": "Bu oyun için bugün zaten skor girdin",
+    "successWordle": "Wordle skoru kaydedildi!",
+    "successParolla": "Parolla skoru kaydedildi!",
+    "submitting": "Kaydediliyor...",
+    "submitWordle": "Wordle Skorunu Kaydet",
+    "submitParolla": "Parolla Skorunu Kaydet",
+    "wordle": {
+      "label": "Kaçıncı denemede çözdün? (1-6, 7=TBK)"
+    },
+    "parolla": {
+      "correct": "Doğru",
+      "wrong": "Yanlış",
+      "blank": "Boş"
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "displayName": "Görünen Ad",
+    "avatarUrl": "Avatar URL (sadece HTTPS)",
+    "avatarHelper": "HTTPS URL olmalı. Boş bırakırsan baş harflerin kullanılır.",
+    "saveSuccess": "Profil güncellendi!",
+    "saveButton": "Kaydet",
+    "email": "E-posta"
+  },
+  "history": {
+    "title": "Skor Geçmişi",
+    "subtitle": "Tüm gönderilen oyun sonuçların.",
+    "filterByGame": "Oyuna göre filtrele",
+    "allGames": "Tüm oyunlar",
+    "noEntries": "Henüz kayıt bulunamadı",
+    "noEntriesDesc": "İlk skorunu girerek burada görünmesini sağla.",
+    "date": "Tarih",
+    "game": "Oyun",
+    "result": "Sonuç",
+    "score": "Skor",
+    "clearFilters": "Filtreleri temizle"
+  },
+  "games": {
+    "title": "Oyunlar",
+    "subtitle": "Günlük sonuçlarını bu oyunlar için gir ve sıralamaya katıl.",
+    "playNow": "Oyna →",
+    "scoring": "PUANLAMA",
+    "daily": "Günlük",
+    "wordle": {
+      "description": "6 denemede 5 harfli gizli kelimeyi bul. Her gün yeni bir kelime.",
+      "scoring": "Az deneme = yüksek puan. TBK (Tahminde Bulunamadım) = 0 puan."
+    },
+    "parolla": {
+      "description": "Türkçe kelime-çağrışım oyunu. Kelimeleri kategorileriyle eşleştir.",
+      "scoring": "Daha fazla doğru cevap = daha yüksek puan."
+    }
+  },
+  "admin": {
+    "dashboard": "Yönetici Paneli",
+    "users": "Kullanıcılar",
+    "entries": "Kayıtlar",
+    "totalUsers": "Toplam Kullanıcı",
+    "totalEntries": "Toplam Kayıt",
+    "activeUsers": "Aktif Kullanıcı",
+    "createUser": "Kullanıcı Oluştur",
+    "userCreated": "Kullanıcı başarıyla oluşturuldu",
+    "editEntry": "Kaydı Düzenle",
+    "entryUpdated": "Kayıt güncellendi",
+    "manageUsers": "Kullanıcıları Yönet",
+    "manageEntries": "Kayıtları Yönet",
+    "manageUsersDesc": "Kullanıcı oluştur, düzenle ve devre dışı bırak.",
+    "manageEntriesDesc": "Herhangi bir kullanıcının günlük kayıtlarını görüntüle ve düzenle.",
+    "deactivate": "Devre Dışı Bırak",
+    "deactivateConfirm": "Bu kullanıcıyı devre dışı bırakmak istiyor musun?",
+    "deactivated": "Kullanıcı devre dışı bırakıldı",
+    "deactivateFailed": "Kullanıcı devre dışı bırakılamadı",
+    "backToUsers": "← Kullanıcılara Dön",
+    "createUserTitle": "Kullanıcı Oluştur",
+    "role": "Rol",
+    "creating": "Oluşturuluyor...",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "edit": "Düzenle",
+    "clearFilters": "Filtreleri temizle",
+    "allGames": "Tüm oyunlar"
+  },
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Bir şeyler ters gitti",
+    "retry": "Tekrar dene",
+    "noData": "Henüz veri yok",
+    "rank": "Sıra",
+    "score": "Skor",
+    "player": "Oyuncu",
+    "date": "Tarih",
+    "today": "Bugün",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "joined": "Katılım",
+    "result": "Sonuç"
+  },
+  "home": {
+    "title": "Günlük Oyun",
+    "titleHighlight": "Sıralaması",
+    "subtitle": "Wordle ve Parolla skorlarını takip et. Günlük, haftalık ve aylık yarış.",
+    "submitScore": "Bugünkü Skoru Gir →",
+    "fullLeaderboard": "Tam Sıralama"
+  }
+}
