@@ -7,7 +7,7 @@ const schema = z.object({
   MONGODB_URI: z.string().min(1),
   ACCESS_TOKEN_SECRET: z.string().min(32),
   REFRESH_TOKEN_SECRET: z.string().min(32),
-  ACCESS_TOKEN_TTL_MS: z.coerce.number().default(900_000),
+  ACCESS_TOKEN_TTL_MS: z.coerce.number().default(172_800_000), // 48 hours
   REFRESH_TOKEN_TTL_MS: z.coerce.number().default(604_800_000),
   FRONTEND_URL: z.string().url(),
   ADMIN_EMAIL: z.string().email().optional(),

@@ -106,16 +106,16 @@ export default function LeaderboardPage() {
       {error && <ErrorState message={error} />}
 
       {!loading && !error && period === 'daily' && dailyData && (
-        <Grid templateColumns={{ base: '1fr', lg: 'repeat(3, 1fr)' }} gap={5}>
-          <GridItem>
+        <Grid templateColumns={{ base: '1fr', lg: 'repeat(3, 1fr)' }} gap={4} minW={0}>
+          <GridItem minW={0}>
             <LeaderboardTable title="Wordle" entries={dailyData.wordle} />
             {dailyData.wordle.length === 0 && <EmptyState title={t('noWordle')} />}
           </GridItem>
-          <GridItem>
+          <GridItem minW={0}>
             <LeaderboardTable title="Parolla" entries={dailyData.parolla} />
             {dailyData.parolla.length === 0 && <EmptyState title={t('noParolla')} />}
           </GridItem>
-          <GridItem>
+          <GridItem minW={0}>
             <LeaderboardTable title={t('overall')} entries={dailyData.total} scoreLabel={t('totalScore')} />
             {dailyData.total.length === 0 && <EmptyState title={t('noCombined')} />}
           </GridItem>

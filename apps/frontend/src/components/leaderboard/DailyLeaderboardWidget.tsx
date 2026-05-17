@@ -78,16 +78,16 @@ export function DailyLeaderboardWidget() {
       {error && <ErrorState message={error} onRetry={() => fetchLeaderboard(date)} />}
 
       {!loading && !error && data && (
-        <Grid templateColumns={{ base: '1fr', lg: 'repeat(3, 1fr)' }} gap={5}>
-          <GridItem>
+        <Grid templateColumns={{ base: '1fr', lg: 'repeat(3, 1fr)' }} gap={4} minW={0}>
+          <GridItem minW={0}>
             <LeaderboardTable title="Wordle" entries={data.wordle} />
             {data.wordle.length === 0 && <EmptyState title={t('noWordle')} description={t('beFirst')} />}
           </GridItem>
-          <GridItem>
+          <GridItem minW={0}>
             <LeaderboardTable title="Parolla" entries={data.parolla} />
             {data.parolla.length === 0 && <EmptyState title={t('noParolla')} description={t('beFirst')} />}
           </GridItem>
-          <GridItem>
+          <GridItem minW={0}>
             <LeaderboardTable title={t('overall')} entries={data.total} scoreLabel={t('totalScore')} />
             {data.total.length === 0 && <EmptyState title={t('noCombined')} description={t('submitBoth')} />}
           </GridItem>
