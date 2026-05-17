@@ -21,8 +21,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=builder /app/apps/frontend/.next/standalone ./
 COPY --from=builder /app/apps/frontend/.next/static ./apps/frontend/.next/static
-# public dir is optional — create it if it doesn't exist
-RUN mkdir -p ./apps/frontend/public
+COPY --from=builder /app/apps/frontend/public ./apps/frontend/public
 
 EXPOSE 3000
 ENV PORT=3000
