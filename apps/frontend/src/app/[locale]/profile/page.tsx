@@ -84,6 +84,11 @@ export default function ProfilePage() {
         avatarUrl: data.avatarUrl || null,
       });
       updateUser(res.data.data);
+      profileForm.reset({
+        username: res.data.data.username,
+        displayName: res.data.data.displayName,
+        avatarUrl: res.data.data.avatarUrl ?? '',
+      });
       setProfileSuccess(true);
     } catch (err) {
       const msg = (err as AxiosError<ApiResponse>).response?.data?.error ?? 'Failed to update';
