@@ -10,6 +10,7 @@ const schema = z.object({
   ACCESS_TOKEN_TTL_MS: z.coerce.number().default(172_800_000), // 48 hours
   REFRESH_TOKEN_TTL_MS: z.coerce.number().default(604_800_000),
   FRONTEND_URL: z.string().url(),
+  BACKEND_URL: z.string().url().default('http://localhost:5000'),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),
   ADMIN_DISPLAY_NAME: z.string().optional(),

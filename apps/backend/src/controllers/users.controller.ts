@@ -1,8 +1,11 @@
 import type { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { User } from '../models/User';
 import { validatePassword, hashPassword } from '../services/auth.service';
 import { ok, notFound, serverError, badRequest, conflict } from '../utils/response';
 import type { UpdateSelfInput, ChangePasswordInput } from '../validation/user.schemas';
+import { env } from '../config/env';
 
 function userPayload(user: InstanceType<typeof User>) {
   return {
@@ -49,6 +52,32 @@ export async function updateMe(req: Request, res: Response): Promise<void> {
     ok(res, userPayload(user));
   } catch (err) {
     console.error('[users.updateMe]', err);
+    serverError(res);
+  }
+}
+
+export async function uploadAvatar(req: Request, res: Response): Promise<void> {
+  try {
+    if (!req.file) { badRequest(res, 'No file uploaded'); return; }
+
+    const user = await User.findById(req.user!.id);
+    if (!user) { notFound(res); return; }
+
+    // Delete old uploaded avatar (ignore URL-based avatars)
+    if (user.avatarUrl) {
+      const oldPath = path.join(process.cwd(), 'uploads', 'avatars', path.basename(user.avatarUrl));
+      if (user.avatarUrl.includes('/uploads/avatars/') && fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    const avatarUrl = `${env.BACKEND_URL}/uploads/avatars/${req.file.filename}`;
+    user.avatarUrl = avatarUrl;
+    await user.save();
+
+    ok(res, userPayload(user));
+  } catch (err) {
+    console.error('[users.uploadAvatar]', err);
     serverError(res);
   }
 }

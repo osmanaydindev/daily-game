@@ -28,6 +28,8 @@ services:
       MONGODB_URI: mongodb://mongodb:27017/dail-game
     ports:
       - '127.0.0.1:5002:5000'
+    volumes:
+      - avatar_uploads:/app/uploads
     networks:
       - internal
 
@@ -50,3 +52,4 @@ networks:
 
 volumes:
   mongo_data:
+  avatar_uploads:
