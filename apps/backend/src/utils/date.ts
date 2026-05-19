@@ -1,8 +1,8 @@
-// All daily logic uses UTC date strings (YYYY-MM-DD).
-// This ensures consistent "today" regardless of server timezone.
+// Daily logic uses Istanbul (UTC+3) timezone so the day resets at local midnight.
+const TZ = 'Europe/Istanbul';
 
 export function todayUTC(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
 }
 
 export function isValidDateString(date: string): boolean {
