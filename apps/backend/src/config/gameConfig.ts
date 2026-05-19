@@ -29,7 +29,7 @@ export const GAME_CONFIG: Record<GameSlug, GameConfig> = {
   wordle: {
     slug: 'wordle',
     name: 'Wordle',
-    officialUrl: 'https://www.nytimes.com/games/wordle/index.html',
+    officialUrl: 'https://wordleturkce.bundle.app/',
     scoreFields: [
       { name: 'attempt', type: 'number', label: 'Solved in attempt #', min: 1, max: 7 },
     ],
