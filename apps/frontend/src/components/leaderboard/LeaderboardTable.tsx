@@ -162,7 +162,6 @@ export function LeaderboardTable({ entries, title, scoreLabel }: LeaderboardTabl
                       </Avatar.Root>
                       <Box overflow="hidden" minW={0} flex={1}>
                         <Text fontWeight="600" fontSize="xs" truncate>@{entry.username}</Text>
-                        <Text fontSize="xs" color="text.muted" truncate>{entry.displayName}</Text>
                       </Box>
                       {topScore !== null && entry.normalizedScore === topScore && (
                         <Badge colorPalette="yellow" size="sm" variant="subtle" flexShrink={0} display={{ base: 'none', sm: 'inline-flex' }}>
