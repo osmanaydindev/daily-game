@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from '@/lib/navigation';
 import { api } from '@/lib/api';
+import { todayLocal } from '@/lib/date';
 import { useTranslations } from 'next-intl';
 import {
   Box,
@@ -203,7 +204,7 @@ export default function EntryPage() {
 
   useEffect(() => {
     if (!user) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocal();
     api.get<{ data: { gameSlug: string }[] }>(`/entries?from=${today}&to=${today}`)
       .then((res) => {
         const slugs = res.data.data.map((e) => e.gameSlug);

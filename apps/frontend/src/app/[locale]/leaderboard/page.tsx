@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { api } from '@/lib/api';
+import { todayLocal, currentMonthLocal } from '@/lib/date';
 import { useTranslations } from 'next-intl';
 import { Reveal } from '@/components/ui/Reveal';
 import type { LeaderboardEntry, DailyLeaderboard } from '@dail-game/types';
@@ -23,19 +24,12 @@ import {
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
-function todayUTC() {
-  return new Date().toISOString().slice(0, 10);
-}
-function currentMonth() {
-  return new Date().toISOString().slice(0, 7);
-}
-
 export default function LeaderboardPage() {
   const t = useTranslations('leaderboard');
   const tCommon = useTranslations('common');
   const [period, setPeriod] = useState<Period>('daily');
-  const [dateParam, setDateParam] = useState(todayUTC());
-  const [monthParam, setMonthParam] = useState(currentMonth());
+  const [dateParam, setDateParam] = useState(todayLocal());
+  const [monthParam, setMonthParam] = useState(currentMonthLocal());
 
   const [dailyData, setDailyData] = useState<DailyLeaderboard | null>(null);
   const [periodData, setPeriodData] = useState<LeaderboardEntry[]>([]);
@@ -91,7 +85,7 @@ export default function LeaderboardPage() {
       {period === 'daily' && (
         <HStack mb={6} gap={2}>
           <Input type="date" value={dateParam} onChange={(e) => setDateParam(e.target.value)} maxW="180px" />
-          <Button size="sm" variant="ghost" colorPalette="brand" onClick={() => setDateParam(todayUTC())}>
+          <Button size="sm" variant="ghost" colorPalette="brand" onClick={() => setDateParam(todayLocal())}>
             {t('today')}
           </Button>
         </HStack>

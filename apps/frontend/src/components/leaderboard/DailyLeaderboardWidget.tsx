@@ -8,17 +8,14 @@ import { LoadingState } from '../ui/LoadingState';
 import { ErrorState } from '../ui/ErrorState';
 import { EmptyState } from '../ui/EmptyState';
 import { api } from '@/lib/api';
+import { todayLocal } from '@/lib/date';
 import type { DailyLeaderboard } from '@dail-game/types';
-
-function todayUTC() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function DailyLeaderboardWidget() {
   const t = useTranslations('leaderboard');
   const tCommon = useTranslations('common');
 
-  const [date, setDate] = useState(todayUTC());
+  const [date, setDate] = useState(todayLocal());
   const [data, setData] = useState<DailyLeaderboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +42,7 @@ export function DailyLeaderboardWidget() {
   };
 
   const handleNextDay = () => {
-    if (date >= todayUTC()) return;
+    if (date >= todayLocal()) return;
     const d = new Date(date);
     d.setUTCDate(d.getUTCDate() + 1);
     setDate(d.toISOString().slice(0, 10));
@@ -65,9 +62,9 @@ export function DailyLeaderboardWidget() {
         <HStack gap={2} flexShrink={0} flexWrap="wrap">
           <Button variant="outline" size="sm" onClick={handlePrevDay} aria-label={t('prevDay')}>←</Button>
           <Text fontFamily="mono" fontSize="sm" fontWeight="500" color="text.muted" px={1}>{date}</Text>
-          <Button variant="outline" size="sm" onClick={handleNextDay} disabled={date >= todayUTC()} aria-label={t('nextDay')}>→</Button>
-          {date !== todayUTC() && (
-            <Button variant="ghost" size="sm" colorPalette="brand" onClick={() => setDate(todayUTC())}>
+          <Button variant="outline" size="sm" onClick={handleNextDay} disabled={date >= todayLocal()} aria-label={t('nextDay')}>→</Button>
+          {date !== todayLocal() && (
+            <Button variant="ghost" size="sm" colorPalette="brand" onClick={() => setDate(todayLocal())}>
               {tCommon('today')}
             </Button>
           )}
