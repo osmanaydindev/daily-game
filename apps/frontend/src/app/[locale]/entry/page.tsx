@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAuthStore } from '@/store/authStore';
-import { useRouter } from '@/lib/navigation';
+import { useRouter, Link } from '@/lib/navigation';
 import { api } from '@/lib/api';
 import { todayLocal } from '@/lib/date';
 import { useTranslations } from 'next-intl';
@@ -17,7 +17,6 @@ import {
   VStack,
   Alert,
   HStack,
-  Tabs,
   Spinner,
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
@@ -26,100 +25,13 @@ import { z } from 'zod';
 import type { AxiosError } from 'axios';
 import type { ApiResponse } from '@dail-game/types';
 
-// ─── Wordle form ──────────────────────────────────────────────────────────────
-const wordleSchema = z.object({
-  attempt: z.coerce.number().int().min(1).max(7),
-});
-type WordleValues = z.infer<typeof wordleSchema>;
-
-function WordleForm({ onSuccess }: { onSuccess: () => void }) {
-  const t = useTranslations('entry');
-  const { register, handleSubmit, watch, formState: { errors }, setError } = useForm<WordleValues>({
-    resolver: zodResolver(wordleSchema),
-    defaultValues: { attempt: 3 },
-  });
-  const [loading, setLoading] = useState(false);
-  const selected = Number(watch('attempt'));
-
-  const onSubmit = async (data: WordleValues) => {
-    setLoading(true);
-    try {
-      await api.post('/entries', { gameSlug: 'wordle', scores: data });
-      onSuccess();
-    } catch (err) {
-      const msg = (err as AxiosError<ApiResponse>).response?.data?.error ?? 'Failed to submit';
-      setError('root', { message: msg });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <VStack gap={5} align="stretch">
-        {errors.root && (
-          <Alert.Root status="error" borderRadius="lg">
-            <Alert.Indicator />
-            <Alert.Title>{errors.root.message}</Alert.Title>
-          </Alert.Root>
-        )}
-
-        <Field.Root invalid={!!errors.attempt}>
-          <Field.Label fontWeight="600">{t('wordle.label')}</Field.Label>
-          <HStack>
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <Box key={n} flex={1}>
-                <input type="radio" id={`attempt-${n}`} value={n} {...register('attempt')} style={{ display: 'none' }} />
-                <label htmlFor={`attempt-${n}`} style={{ display: 'block', width: '100%' }}>
-                  <Button
-                    as="div"
-                    variant={selected === n ? 'solid' : 'outline'}
-                    colorPalette={selected === n ? 'green' : 'gray'}
-                    w="full"
-                    size="sm"
-                    cursor="pointer"
-                    fontWeight={selected === n ? '700' : '400'}
-                  >
-                    {n}
-                  </Button>
-                </label>
-              </Box>
-            ))}
-            <Box flex={1}>
-              <input type="radio" id="attempt-7" value={7} {...register('attempt')} style={{ display: 'none' }} />
-              <label htmlFor="attempt-7" style={{ display: 'block', width: '100%' }}>
-                <Button
-                  as="div"
-                  variant={selected === 7 ? 'solid' : 'outline'}
-                  colorPalette="red"
-                  w="full"
-                  size="sm"
-                  cursor="pointer"
-                  fontWeight={selected === 7 ? '700' : '400'}
-                >
-                  DNF
-                </Button>
-              </label>
-            </Box>
-          </HStack>
-          {errors.attempt && <Field.ErrorText>{errors.attempt.message}</Field.ErrorText>}
-        </Field.Root>
-
-        <Button type="submit" colorPalette="green" loading={loading} loadingText={t('submitting')} fontWeight="600">
-          {t('submitWordle')}
-        </Button>
-      </VStack>
-    </form>
-  );
-}
-
 // ─── Parolla form ─────────────────────────────────────────────────────────────
 const parollaSchema = z.object({
   correct: z.coerce.number().int().min(0).max(26),
   wrong: z.coerce.number().int().min(0),
   blank: z.coerce.number().int().min(0),
 }).refine((d) => d.correct + d.wrong + d.blank > 0, {
-  message: 'At least one field must be non-zero',
+  message: 'En az bir alan sıfırdan farklı olmalı',
 });
 type ParollaValues = z.infer<typeof parollaSchema>;
 
@@ -180,23 +92,12 @@ function ParollaForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-// ─── Submitted state ──────────────────────────────────────────────────────────
-function SubmittedBadge({ game }: { game: string }) {
-  const t = useTranslations('entry');
-  return (
-    <Alert.Root status="success" borderRadius="xl">
-      <Alert.Indicator />
-      <Alert.Title>{t('alreadySubmitted', { game })}</Alert.Title>
-    </Alert.Root>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function EntryPage() {
   const t = useTranslations('entry');
   const { user, isInitialized } = useAuthStore();
   const router = useRouter();
-  const [todayEntries, setTodayEntries] = useState<{ wordle: boolean; parolla: boolean } | null>(null);
+  const [parollaSubmitted, setParollaSubmitted] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (isInitialized && !user) router.replace('/login');
@@ -208,9 +109,9 @@ export default function EntryPage() {
     api.get<{ data: { gameSlug: string }[] }>(`/entries?from=${today}&to=${today}`)
       .then((res) => {
         const slugs = res.data.data.map((e) => e.gameSlug);
-        setTodayEntries({ wordle: slugs.includes('wordle'), parolla: slugs.includes('parolla') });
+        setParollaSubmitted(slugs.includes('parolla'));
       })
-      .catch(() => setTodayEntries({ wordle: false, parolla: false }));
+      .catch(() => setParollaSubmitted(false));
   }, [user]);
 
   if (!user) return null;
@@ -221,28 +122,40 @@ export default function EntryPage() {
         <Heading size="xl" fontWeight="800" mb={2}>{t('title')}</Heading>
         <Text color="text.muted" mb={8}>{t('subtitle')}</Text>
 
+        {/* Wordle redirect card */}
+        <Box
+          bg="surface.card"
+          borderRadius="2xl"
+          borderWidth="1px"
+          borderColor="border.subtle"
+          p={5}
+          mb={4}
+        >
+          <HStack justify="space-between" align="center" gap={4} flexWrap="wrap">
+            <Box>
+              <Text fontWeight="700" fontSize="md">Wordle</Text>
+              <Text fontSize="sm" color="text.muted">Wordle'ı sitede oynayıp skoru otomatik kaydet</Text>
+            </Box>
+            <Link href="/wordle">
+              <Button colorPalette="green" size="sm" fontWeight="600">
+                Wordle'ı Oyna →
+              </Button>
+            </Link>
+          </HStack>
+        </Box>
+
+        {/* Parolla form */}
         <Box bg="surface.card" borderRadius="2xl" borderWidth="1px" borderColor="border.subtle" p={6}>
-          {todayEntries === null ? (
+          <Text fontWeight="700" fontSize="md" mb={5}>Parolla</Text>
+          {parollaSubmitted === null ? (
             <HStack justify="center" py={8}><Spinner /></HStack>
+          ) : parollaSubmitted ? (
+            <Alert.Root status="success" borderRadius="xl">
+              <Alert.Indicator />
+              <Alert.Title>{t('alreadySubmitted', { game: 'Parolla' })}</Alert.Title>
+            </Alert.Root>
           ) : (
-            <Tabs.Root defaultValue="wordle" variant="enclosed">
-              <Tabs.List mb={6}>
-                <Tabs.Trigger value="wordle">Wordle</Tabs.Trigger>
-                <Tabs.Trigger value="parolla">Parolla</Tabs.Trigger>
-              </Tabs.List>
-              <Tabs.Content value="wordle">
-                {todayEntries.wordle
-                  ? <SubmittedBadge game="Wordle" />
-                  : <WordleForm onSuccess={() => setTodayEntries((p) => p ? { ...p, wordle: true } : p)} />
-                }
-              </Tabs.Content>
-              <Tabs.Content value="parolla">
-                {todayEntries.parolla
-                  ? <SubmittedBadge game="Parolla" />
-                  : <ParollaForm onSuccess={() => setTodayEntries((p) => p ? { ...p, parolla: true } : p)} />
-                }
-              </Tabs.Content>
-            </Tabs.Root>
+            <ParollaForm onSuccess={() => setParollaSubmitted(true)} />
           )}
         </Box>
       </Box>
