@@ -74,7 +74,6 @@ function PlayerModal({
               </Avatar.Root>
               <Box overflow="hidden">
                 <Text fontWeight="700" fontSize="lg" truncate>@{entry.username}</Text>
-                <Text fontSize="sm" color="text.muted" truncate>{entry.displayName}</Text>
               </Box>
             </HStack>
           </Dialog.Header>
