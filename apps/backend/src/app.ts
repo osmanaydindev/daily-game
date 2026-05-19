@@ -31,7 +31,7 @@ app.use(
 );
 
 // ─── Static uploads ───────────────────────────────────────────────────────────
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/api/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ─── Parsing ──────────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10kb' }));

@@ -66,12 +66,12 @@ export async function uploadAvatar(req: Request, res: Response): Promise<void> {
     // Delete old uploaded avatar (ignore URL-based avatars)
     if (user.avatarUrl) {
       const oldPath = path.join(process.cwd(), 'uploads', 'avatars', path.basename(user.avatarUrl));
-      if (user.avatarUrl.includes('/uploads/avatars/') && fs.existsSync(oldPath)) {
+      if (user.avatarUrl.includes('/api/uploads/avatars/') && fs.existsSync(oldPath)) {
         fs.unlinkSync(oldPath);
       }
     }
 
-    const avatarUrl = `${env.BACKEND_URL}/uploads/avatars/${req.file.filename}`;
+    const avatarUrl = `${env.BACKEND_URL}/api/uploads/avatars/${req.file.filename}`;
     user.avatarUrl = avatarUrl;
     await user.save();
 
