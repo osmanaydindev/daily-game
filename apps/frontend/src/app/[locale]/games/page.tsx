@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { AppShell } from '@/components/layout/AppShell';
 import { Reveal } from '@/components/ui/Reveal';
+import { Link } from '@/lib/navigation';
 import {
   Box,
   Grid,
@@ -24,7 +25,8 @@ export default function GamesPage() {
       slug: 'wordle',
       name: 'Wordle',
       description: t('wordle.description'),
-      url: 'https://www.nytimes.com/games/wordle/index.html',
+      href: '/wordle',
+      external: false,
       color: 'green',
       scoring: t('wordle.scoring'),
     },
@@ -32,7 +34,8 @@ export default function GamesPage() {
       slug: 'parolla',
       name: 'Parolla',
       description: t('parolla.description'),
-      url: 'https://parolla.app',
+      href: 'https://parolla.app',
+      external: true,
       color: 'blue',
       scoring: t('parolla.scoring'),
     },
@@ -91,13 +94,23 @@ export default function GamesPage() {
                   <Text fontSize="sm">{game.scoring}</Text>
                 </Box>
 
-                <a href={game.url} target="_blank" rel="noopener noreferrer" style={{ width: '100%' }}>
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-                    <Button colorPalette={game.color} variant="outline" w="full" fontWeight="600">
-                      {t('playNow')}
-                    </Button>
-                  </motion.div>
-                </a>
+                {game.external ? (
+                  <a href={game.href} target="_blank" rel="noopener noreferrer" style={{ width: '100%' }}>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                      <Button colorPalette={game.color} variant="outline" w="full" fontWeight="600">
+                        {t('playNow')}
+                      </Button>
+                    </motion.div>
+                  </a>
+                ) : (
+                  <Link href={game.href} style={{ width: '100%' }}>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                      <Button colorPalette={game.color} variant="solid" w="full" fontWeight="600">
+                        {t('playNow')}
+                      </Button>
+                    </motion.div>
+                  </Link>
+                )}
               </Box>
             </motion.div>
           </GridItem>
