@@ -31,6 +31,7 @@ export function Navbar() {
   const NAV_LINKS = [
     { href: '/' as const, label: t('home') },
     { href: '/leaderboard' as const, label: t('leaderboard') },
+    { href: '/wordle' as const, label: t('wordle') },
     { href: '/history' as const, label: t('history') },
     { href: '/games' as const, label: t('games') },
   ];
