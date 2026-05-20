@@ -13,7 +13,7 @@ const BOARD_Y = BORDER;
 const BOARD_H = H - 2 * BORDER;
 const HALF_H = BOARD_H / 2;
 const POINT_H = HALF_H - 14;
-const CR = Math.min(Math.floor(POINT_W / 2) - 2, 22); // checker radius
+const CR = Math.min(Math.floor(POINT_W / 2) - 2, 22);
 
 // ── Point index → screen column (0–11) ───────────────────────────────────────
 function pointCol(idx: number): number {
@@ -41,10 +41,14 @@ function checkerXY(idx: number, n: number): { x: number; y: number } {
 
 function barX(): number { return BORDER + 6 * POINT_W + BAR_W / 2; }
 
-// ── Click hit-test → point index, 'bar', or null ─────────────────────────────
-function hitTestPoint(cx: number, cy: number): number | 'bar' | null {
+// ── Click hit-test → point index, 'bar', 'off', or null ──────────────────────
+function hitTestPoint(cx: number, cy: number): number | 'bar' | 'off' | null {
+  // Bear-off zone: right border strip
+  if (cx > W - BORDER) return 'off';
+
   const barLeft = BORDER + 6 * POINT_W;
   if (cx >= barLeft && cx <= barLeft + BAR_W) return 'bar';
+
   const isTop = cy < BOARD_Y + HALF_H;
   let col: number;
   if (cx >= BORDER && cx < BORDER + 6 * POINT_W) {
@@ -72,9 +76,8 @@ function drawTriangle(ctx: CanvasRenderingContext2D, col: number, isTop: boolean
   ctx.fill();
 }
 
-function drawChecker(ctx: CanvasRenderingContext2D, x: number, y: number, color: Color, dimmed = false) {
+function drawChecker(ctx: CanvasRenderingContext2D, x: number, y: number, color: Color) {
   const isWhite = color === 'white';
-  ctx.globalAlpha = dimmed ? 0.4 : 1;
   ctx.beginPath();
   ctx.arc(x, y, CR, 0, Math.PI * 2);
   ctx.fillStyle = isWhite ? '#e8e0d0' : '#2a1f1f';
@@ -82,13 +85,11 @@ function drawChecker(ctx: CanvasRenderingContext2D, x: number, y: number, color:
   ctx.strokeStyle = isWhite ? '#bbb' : '#555';
   ctx.lineWidth = 2;
   ctx.stroke();
-  // Inner ring
   ctx.beginPath();
   ctx.arc(x, y, CR - 5, 0, Math.PI * 2);
   ctx.strokeStyle = isWhite ? '#ccc4b0' : '#3d2e2e';
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.globalAlpha = 1;
 }
 
 function drawDie(ctx: CanvasRenderingContext2D, x: number, y: number, value: number, used: boolean) {
@@ -121,12 +122,14 @@ function drawDie(ctx: CanvasRenderingContext2D, x: number, y: number, value: num
 interface Props {
   state: GameState;
   myColor: Color;
+  flip: boolean;
   selected: number | 'bar' | null;
   validMoves: Move[];
-  onPointClick: (idx: number | 'bar') => void;
+  animDice: number[] | null;
+  onPointClick: (idx: number | 'bar' | 'off') => void;
 }
 
-export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick }: Props) {
+export function TavlaBoard({ state, myColor, flip, selected, validMoves, animDice, onPointClick }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dark = '#1a3d2b';
   const light = '#c8a96e';
@@ -138,8 +141,14 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-
     ctx.clearRect(0, 0, W, H);
+
+    // Apply 180° flip for black player
+    ctx.save();
+    if (flip) {
+      ctx.translate(W, H);
+      ctx.scale(-1, -1);
+    }
 
     // Background
     ctx.fillStyle = boardBg;
@@ -174,20 +183,18 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
     const destSet = new Set(
       validMoves
         .filter(m => m.from === selected || (selected === 'bar' && m.from === 'bar'))
-        .map(m => m.to)
+        .map(m => m.to),
     );
 
     for (const dest of destSet) {
       if (dest === 'off') {
-        // Highlight bear-off area
-        const isWhiteHome = myColor === 'white';
+        // Bear-off highlight — always right border in canvas coords
+        // After flip transform it appears on the visually correct side
         ctx.fillStyle = 'rgba(100,255,120,0.25)';
-        ctx.fillRect(
-          isWhiteHome ? W - BORDER : 0,
-          BOARD_Y,
-          BORDER,
-          BOARD_H,
-        );
+        ctx.fillRect(W - BORDER, BOARD_Y, BORDER, BOARD_H);
+        ctx.strokeStyle = 'rgba(100,255,120,0.7)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(W - BORDER, BOARD_Y, BORDER, BOARD_H);
       } else {
         const dx = pointX(dest as number);
         const isTop = pointIsTop(dest as number);
@@ -208,9 +215,8 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
       const abs = Math.abs(count);
       for (let n = 0; n < Math.min(abs, 5); n++) {
         const { x, y } = checkerXY(idx, n);
-        const isSelected = selected === idx;
-        drawChecker(ctx, x, y, color, false);
-        if (isSelected && n === 0) {
+        drawChecker(ctx, x, y, color);
+        if (selected === idx && n === 0) {
           ctx.beginPath();
           ctx.arc(x, y, CR + 3, 0, Math.PI * 2);
           ctx.strokeStyle = '#4af';
@@ -218,7 +224,6 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
           ctx.stroke();
         }
       }
-      // Stack count label if > 5
       if (abs > 5) {
         const { x, y } = checkerXY(idx, 4);
         ctx.fillStyle = 'rgba(0,0,0,0.75)';
@@ -237,7 +242,7 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
     const bx = barX();
     for (let n = 0; n < state.bar.white; n++) {
       const y = BOARD_Y + HALF_H + CR + 4 + n * (CR * 2 + 4);
-      drawChecker(ctx, bx, y, 'white', selected === 'bar' && myColor === 'white');
+      drawChecker(ctx, bx, y, 'white');
       if (selected === 'bar' && myColor === 'white' && n === 0) {
         ctx.beginPath(); ctx.arc(bx, y, CR + 3, 0, Math.PI * 2);
         ctx.strokeStyle = '#4af'; ctx.lineWidth = 2.5; ctx.stroke();
@@ -245,20 +250,14 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
     }
     for (let n = 0; n < state.bar.black; n++) {
       const y = BOARD_Y + HALF_H - CR - 4 - n * (CR * 2 + 4);
-      drawChecker(ctx, bx, y, 'black', selected === 'bar' && myColor === 'black');
+      drawChecker(ctx, bx, y, 'black');
       if (selected === 'bar' && myColor === 'black' && n === 0) {
         ctx.beginPath(); ctx.arc(bx, y, CR + 3, 0, Math.PI * 2);
         ctx.strokeStyle = '#4af'; ctx.lineWidth = 2.5; ctx.stroke();
       }
     }
 
-    // ── Borne off indicators ─────────────────────────────────────────────────
-    const borneFontSize = 12;
-    ctx.font = `bold ${borneFontSize}px system-ui`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // White borne off (bottom right corner)
+    // ── Borne-off indicators (right border in canvas coords) ─────────────────
     if (state.borneOff.white > 0) {
       for (let n = 0; n < Math.min(state.borneOff.white, 15); n++) {
         const y = BOARD_Y + BOARD_H - 4 - n * 6;
@@ -266,7 +265,6 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
         ctx.fillRect(W - BORDER + 2, y - 3, BORDER - 4, 5);
       }
     }
-    // Black borne off (top right corner)
     if (state.borneOff.black > 0) {
       for (let n = 0; n < Math.min(state.borneOff.black, 15); n++) {
         const y = BOARD_Y + 4 + n * 6;
@@ -275,29 +273,32 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
       }
     }
 
-    // ── Dice ─────────────────────────────────────────────────────────────────
-    if (state.dice.length > 0) {
-      const used = state.dice.length - state.movesLeft.length;
+    ctx.restore();
+
+    // ── Dice — drawn after restore so always upright ──────────────────────────
+    const displayDice = animDice ?? state.dice;
+    if (displayDice.length > 0) {
+      const usedCount = animDice ? 0 : state.dice.length - state.movesLeft.length;
       const diceY = BOARD_Y + HALF_H;
-      const startX = bx - ((state.dice.length - 1) * 40) / 2;
-      for (let i = 0; i < state.dice.length; i++) {
-        drawDie(ctx, startX + i * 40, diceY, state.dice[i], i < used);
+      const startX = barX() - ((displayDice.length - 1) * 40) / 2;
+      for (let i = 0; i < displayDice.length; i++) {
+        drawDie(ctx, startX + i * 40, diceY, displayDice[i], !animDice && i < usedCount);
       }
     }
 
-    // ── Point labels ─────────────────────────────────────────────────────────
-    ctx.font = '10px system-ui';
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    for (let idx = 0; idx < 24; idx++) {
-      const x = pointX(idx);
-      const isTop = pointIsTop(idx);
-      const label = String(idx + 1);
-      ctx.fillText(label, x, isTop ? BOARD_Y + 6 : BOARD_Y + BOARD_H - 6);
+    // ── Point labels (only unflipped, debug aid) ──────────────────────────────
+    if (!flip) {
+      ctx.font = '10px system-ui';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let idx = 0; idx < 24; idx++) {
+        const x = pointX(idx);
+        const isTop = pointIsTop(idx);
+        ctx.fillText(String(idx + 1), x, isTop ? BOARD_Y + 6 : BOARD_Y + BOARD_H - 6);
+      }
     }
-
-  }, [state, myColor, selected, validMoves, dark, light, boardBg, borderColor]);
+  }, [state, myColor, flip, selected, validMoves, animDice, dark, light, boardBg, borderColor]);
 
   // ── Click handler ──────────────────────────────────────────────────────────
   const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -306,11 +307,14 @@ export function TavlaBoard({ state, myColor, selected, validMoves, onPointClick 
     const rect = canvas.getBoundingClientRect();
     const scaleX = W / rect.width;
     const scaleY = H / rect.height;
-    const cx = (e.clientX - rect.left) * scaleX;
-    const cy = (e.clientY - rect.top) * scaleY;
+    const rawX = (e.clientX - rect.left) * scaleX;
+    const rawY = (e.clientY - rect.top) * scaleY;
+    // Invert coordinates for black (flipped board)
+    const cx = flip ? W - rawX : rawX;
+    const cy = flip ? H - rawY : rawY;
     const hit = hitTestPoint(cx, cy);
-    if (hit !== null) onPointClick(hit === 'bar' ? 'bar' : hit as number);
-  }, [onPointClick]);
+    if (hit !== null) onPointClick(hit);
+  }, [flip, onPointClick]);
 
   return (
     <canvas

@@ -246,6 +246,7 @@ export function ParollaGame() {
   const [submitted,   setSubmitted]   = useState(false);
   const [showModal,   setShowModal]   = useState(false);
   const [loadError,   setLoadError]   = useState<string | null>(null);
+  const [inputError,  setInputError]  = useState<string | null>(null);
 
   const inputRef        = useRef<HTMLInputElement>(null);
   const bubblesRef      = useRef<HTMLDivElement>(null);
@@ -373,6 +374,12 @@ export function ParollaGame() {
     if (gameStatus !== 'playing') return;
     const trimmed = userInput.trim();
     if (!trimmed) return;
+    const currentLetter = results[currentIdx].letter.toLocaleUpperCase('tr-TR');
+    if (trimmed[0].toLocaleUpperCase('tr-TR') !== currentLetter) {
+      setInputError(`Cevap "${currentLetter}" harfiyle başlamalı.`);
+      setTimeout(() => setInputError(null), 2500);
+      return;
+    }
     const updated = [...results];
     updated[currentIdx] = {
       ...updated[currentIdx],
@@ -504,6 +511,19 @@ export function ParollaGame() {
       {/* Input + PAS */}
       {gameStatus === 'playing' && (
         <Box px={4} pb={4} w="full" maxW="600px" mx="auto">
+          {inputError && (
+            <Box
+              mb={2}
+              px={4}
+              py={2}
+              borderRadius="lg"
+              bg="#c0392b22"
+              borderWidth="1px"
+              borderColor="#c0392b55"
+            >
+              <Text fontSize="sm" color="#e74c3c" fontWeight="600">{inputError}</Text>
+            </Box>
+          )}
           <HStack
             gap={0}
             borderRadius="xl"
@@ -514,7 +534,7 @@ export function ParollaGame() {
             <Input
               ref={inputRef}
               value={userInput}
-              onChange={e => setUserInput(e.target.value)}
+              onChange={e => { setUserInput(e.target.value); if (inputError) setInputError(null); }}
               onKeyDown={handleKeyDown}
               placeholder="Cevabı Yaz"
               border="none"

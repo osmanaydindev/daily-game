@@ -2,7 +2,7 @@ import { Server } from 'socket.io';
 import type { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { createRoom, joinRoom, getRoomBySocketId, removePlayer } from './rooms';
+import { createRoom, joinRoom, rejoinRoom, getRoomBySocketId, disconnectPlayer } from './rooms';
 import {
   createInitialState, rollDice, applyRoll, getLegalMoves, applyMove,
 } from './engine';
@@ -69,7 +69,35 @@ export function attachTavlaSocket(httpServer: HttpServer): void {
           state,
           myColor: player.color,
           players: playerInfo,
+          code: room.code,
         });
+      }
+    });
+
+    // Rejoin after page refresh
+    socket.on('tavla:rejoin', ({ code }: { code: string }) => {
+      const room = rejoinRoom(code, userId, socket.id);
+      if (!room?.state) {
+        socket.emit('tavla:error', { message: 'Oyun bulunamadı.' });
+        return;
+      }
+      socket.join(room.code);
+      const player = room.players.find(p => p.userId === userId)!;
+      const playerInfo = room.players.map(p => ({
+        displayName: p.displayName,
+        color: p.color,
+      }));
+      socket.emit('tavla:reconnected', {
+        state: room.state,
+        myColor: player.color,
+        players: playerInfo,
+        code: room.code,
+      });
+      // Notify the other player
+      for (const p of room.players) {
+        if (p.userId !== userId && p.connected) {
+          io.to(p.socketId).emit('tavla:opponent_reconnected');
+        }
       }
     });
 
@@ -124,9 +152,9 @@ export function attachTavlaSocket(httpServer: HttpServer): void {
       io.to(room.code).emit('tavla:state', { state: room.state });
     });
 
-    // Disconnect
+    // Disconnect — keep room alive for rejoin
     socket.on('disconnect', () => {
-      const result = removePlayer(socket.id);
+      const result = disconnectPlayer(socket.id);
       if (result) {
         io.to(result.room.code).emit('tavla:opponent_left');
       }

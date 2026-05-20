@@ -9,10 +9,33 @@ import type { GameState, Move, Color, PlayerInfo } from './types';
 import { createTavlaSocket } from '@/lib/socket';
 import type { Socket } from 'socket.io-client';
 
+// ── Dice sound via Web Audio API ──────────────────────────────────────────────
+function playDiceSound() {
+  try {
+    const actx = new AudioContext();
+    // Clatter clicks at increasing intervals
+    const times = [0, 0.07, 0.13, 0.19, 0.27, 0.37, 0.49, 0.63, 0.79, 0.97, 1.17];
+    times.forEach(t => {
+      const buf = actx.createBuffer(1, Math.ceil(actx.sampleRate * 0.025), actx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+      const src = actx.createBufferSource();
+      src.buffer = buf;
+      const gain = actx.createGain();
+      gain.gain.setValueAtTime(0.5, actx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + t + 0.025);
+      src.connect(gain);
+      gain.connect(actx.destination);
+      src.start(actx.currentTime + t);
+    });
+    setTimeout(() => actx.close(), 1800);
+  } catch {
+    // AudioContext not available — silently skip
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getLegalMoves(state: GameState, myColor: Color): Move[] {
-  // Minimal client-side legal move calculator (mirrors backend, used only for
-  // highlighting — the server validates every move independently).
   if (state.phase !== 'moving' || state.turn !== myColor) return [];
   const { board, bar, movesLeft } = state;
   const unique = [...new Set(movesLeft)];
@@ -72,14 +95,12 @@ function getLegalMoves(state: GameState, myColor: Color): Move[] {
 
 // ── Lobby ─────────────────────────────────────────────────────────────────────
 function Lobby({
-  displayName,
   onCreateRoom,
   onJoinRoom,
   createdCode,
   error,
   joining,
 }: {
-  displayName: string;
   onCreateRoom: () => void;
   onJoinRoom: (code: string) => void;
   createdCode: string | null;
@@ -102,7 +123,6 @@ function Lobby({
         </Alert.Root>
       )}
 
-      {/* Create */}
       <Box w="full" bg="surface.card" borderRadius="xl" borderWidth="1px" borderColor="border.subtle" p={5}>
         <Text fontWeight="700" mb={3}>Yeni Oda Oluştur</Text>
         <Button w="full" colorPalette="brand" variant="solid" onClick={onCreateRoom} loading={joining}>
@@ -119,7 +139,6 @@ function Lobby({
         )}
       </Box>
 
-      {/* Join */}
       <Box w="full" bg="surface.card" borderRadius="xl" borderWidth="1px" borderColor="border.subtle" p={5}>
         <Text fontWeight="700" mb={3}>Odaya Katıl</Text>
         <HStack>
@@ -153,8 +172,15 @@ interface TavlaGameProps {
   user: { _id: string; displayName: string };
 }
 
+const STORAGE_KEY = 'tavla-room';
+
 export function TavlaGame({ user }: TavlaGameProps) {
   const socketRef = useRef<Socket | null>(null);
+  const prevPhaseRef = useRef<string | null>(null);
+  const animatingRef = useRef(false);
+  const pendingStateRef = useRef<GameState | null>(null);
+  const rejoinAttemptRef = useRef(false);
+
   const [phase, setPhase] = useState<'lobby' | 'waiting' | 'playing'>('lobby');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [myColor, setMyColor] = useState<Color>('white');
@@ -165,6 +191,42 @@ export function TavlaGame({ user }: TavlaGameProps) {
   const [error, setError] = useState<string | null>(null);
   const [opponentLeft, setOpponentLeft] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [animDice, setAnimDice] = useState<number[] | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // ── Dice animation ─────────────────────────────────────────────────────────
+  const startDiceAnimation = useCallback((finalState: GameState) => {
+    if (animatingRef.current) return;
+    animatingRef.current = true;
+    setIsAnimating(true);
+    pendingStateRef.current = finalState;
+    playDiceSound();
+
+    // Frame delays: fast→slow (ms between frames)
+    const deltas = [45, 55, 65, 80, 95, 115, 140, 165, 195, 230, 0];
+    let elapsed = 0;
+    deltas.forEach((delta, i) => {
+      elapsed += delta;
+      setTimeout(() => {
+        if (i < deltas.length - 1) {
+          setAnimDice([
+            Math.ceil(Math.random() * 6),
+            Math.ceil(Math.random() * 6),
+          ]);
+        } else {
+          // Animation done — apply real state
+          setAnimDice(null);
+          setIsAnimating(false);
+          animatingRef.current = false;
+          const s = pendingStateRef.current!;
+          setGameState(s);
+          prevPhaseRef.current = s.phase;
+          setSelected(null);
+          setValidMoves([]);
+        }
+      }, elapsed);
+    });
+  }, []);
 
   // ── Socket setup ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -181,26 +243,62 @@ export function TavlaGame({ user }: TavlaGameProps) {
       state,
       myColor: mc,
       players: pl,
-    }: { state: GameState; myColor: Color; players: PlayerInfo[] }) => {
+      code,
+    }: { state: GameState; myColor: Color; players: PlayerInfo[]; code: string }) => {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ code, color: mc }));
+      prevPhaseRef.current = state.phase;
       setGameState(state);
       setMyColor(mc);
       setPlayers(pl);
       setPhase('playing');
     });
 
-    s.on('tavla:state', ({ state }: { state: GameState }) => {
+    s.on('tavla:reconnected', ({
+      state,
+      myColor: mc,
+      players: pl,
+      code,
+    }: { state: GameState; myColor: Color; players: PlayerInfo[]; code: string }) => {
+      rejoinAttemptRef.current = false;
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ code, color: mc }));
+      prevPhaseRef.current = state.phase;
       setGameState(state);
-      setSelected(null);
-      setValidMoves([]);
+      setMyColor(mc);
+      setPlayers(pl);
+      setPhase('playing');
+      setJoining(false);
+    });
+
+    s.on('tavla:state', ({ state }: { state: GameState }) => {
+      const prevPhase = prevPhaseRef.current;
+      // Detect dice roll: dice just appeared and previous phase was rolling
+      if (state.dice.length > 0 && prevPhase === 'rolling' && !animatingRef.current) {
+        prevPhaseRef.current = state.phase;
+        startDiceAnimation(state);
+      } else if (!animatingRef.current) {
+        prevPhaseRef.current = state.phase;
+        setGameState(state);
+        setSelected(null);
+        setValidMoves([]);
+      }
     });
 
     s.on('tavla:error', ({ message }: { message: string }) => {
+      if (rejoinAttemptRef.current) {
+        rejoinAttemptRef.current = false;
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
       setError(message);
       setTimeout(() => setError(null), 3000);
+      setJoining(false);
     });
 
     s.on('tavla:opponent_left', () => {
       setOpponentLeft(true);
+    });
+
+    s.on('tavla:opponent_reconnected', () => {
+      setOpponentLeft(false);
     });
 
     s.on('connect_error', () => {
@@ -208,8 +306,22 @@ export function TavlaGame({ user }: TavlaGameProps) {
       setJoining(false);
     });
 
+    // Attempt rejoin if we have a saved session
+    s.on('connect', () => {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          const { code } = JSON.parse(raw) as { code: string; color: Color };
+          rejoinAttemptRef.current = true;
+          s.emit('tavla:rejoin', { code });
+        } catch {
+          sessionStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    });
+
     return () => { s.disconnect(); };
-  }, []);
+  }, [startDiceAnimation]);
 
   const handleCreateRoom = useCallback(() => {
     setJoining(true);
@@ -224,8 +336,9 @@ export function TavlaGame({ user }: TavlaGameProps) {
   }, [user.displayName]);
 
   const handleRoll = useCallback(() => {
+    if (isAnimating) return;
     socketRef.current?.emit('tavla:roll');
-  }, []);
+  }, [isAnimating]);
 
   const handleResign = useCallback(() => {
     if (confirm('Oyunu teslim etmek istiyor musun?')) {
@@ -234,30 +347,43 @@ export function TavlaGame({ user }: TavlaGameProps) {
   }, []);
 
   // ── Point click (select + move) ────────────────────────────────────────────
-  const handlePointClick = useCallback((idx: number | 'bar') => {
+  const handlePointClick = useCallback((idx: number | 'bar' | 'off') => {
     if (!gameState || gameState.phase !== 'moving' || gameState.turn !== myColor) return;
+
+    // Bear-off click
+    if (idx === 'off') {
+      if (selected !== null) {
+        const offMove = validMoves.find(m => m.from === selected && m.to === 'off');
+        if (offMove) {
+          socketRef.current?.emit('tavla:move', offMove);
+          setSelected(null);
+          setValidMoves([]);
+        }
+      }
+      return;
+    }
 
     const allMoves = getLegalMoves(gameState, myColor);
 
-    // If clicking a valid destination for the selected checker → move
+    // Clicking a valid destination → move
     if (selected !== null) {
       const matchingMoves = allMoves.filter(m =>
-        m.from === selected && m.to === idx
+        m.from === selected && m.to === idx,
       );
       if (matchingMoves.length > 0) {
-        // Prefer exact bear-off die; otherwise first die
-        const move = matchingMoves[0];
-        socketRef.current?.emit('tavla:move', move);
+        socketRef.current?.emit('tavla:move', matchingMoves[0]);
         setSelected(null);
         setValidMoves([]);
         return;
       }
     }
 
-    // Select new checker
+    // Select a checker
     const isMyChecker = idx === 'bar'
       ? gameState.bar[myColor] > 0
-      : (myColor === 'white' ? gameState.board[idx as number] > 0 : gameState.board[idx as number] < 0);
+      : (myColor === 'white'
+        ? gameState.board[idx as number] > 0
+        : gameState.board[idx as number] < 0);
 
     if (isMyChecker) {
       const movesFromHere = allMoves.filter(m => m.from === idx);
@@ -268,16 +394,14 @@ export function TavlaGame({ user }: TavlaGameProps) {
       }
     }
 
-    // Deselect
     setSelected(null);
     setValidMoves([]);
-  }, [gameState, myColor, selected]);
+  }, [gameState, myColor, selected, validMoves]);
 
-  // ── Phase: lobby ───────────────────────────────────────────────────────────
+  // ── Phase: lobby / waiting ─────────────────────────────────────────────────
   if (phase === 'lobby' || phase === 'waiting') {
     return (
       <Lobby
-        displayName={user.displayName}
         onCreateRoom={handleCreateRoom}
         onJoinRoom={handleJoinRoom}
         createdCode={phase === 'waiting' ? createdCode : null}
@@ -293,12 +417,14 @@ export function TavlaGame({ user }: TavlaGameProps) {
   const isMyTurn = gameState.turn === myColor;
   const oppInfo = players.find(p => p.color !== myColor);
   const myInfo = players.find(p => p.color === myColor);
+  const flip = myColor === 'black';
 
   const statusMsg = () => {
     if (gameState.phase === 'ended') {
       return gameState.winner === myColor ? '🏆 Kazandın!' : '😔 Kaybettin';
     }
     if (opponentLeft) return 'Rakip oyundan ayrıldı.';
+    if (isAnimating) return 'Zar atıldı...';
     if (!isMyTurn) return `${oppInfo?.displayName ?? 'Rakip'} oynuyor...`;
     if (gameState.phase === 'rolling') return 'Zarını at!';
     return gameState.movesLeft.length > 0 ? `${gameState.movesLeft.length} hamle hakkın var` : '';
@@ -318,13 +444,13 @@ export function TavlaGame({ user }: TavlaGameProps) {
         <HStack gap={2}>
           <Box w="14px" h="14px" borderRadius="full" bg={myColor === 'white' ? '#e8e0d0' : '#2a1f1f'} borderWidth="1px" borderColor="border.subtle" />
           <Text fontSize="sm" fontWeight="700">{myInfo?.displayName ?? 'Sen'}</Text>
-          <Text fontSize="xs" color="text.muted">({gameState.borneOff[myColor]}/15 toplandı)</Text>
+          <Text fontSize="xs" color="text.muted">({gameState.borneOff[myColor]}/15)</Text>
         </HStack>
         <Text fontSize="sm" color={isMyTurn ? 'green.400' : 'text.muted'} fontWeight="600">
           {statusMsg()}
         </Text>
         <HStack gap={2}>
-          <Text fontSize="xs" color="text.muted">({gameState.borneOff[myColor === 'white' ? 'black' : 'white']}/15 toplandı)</Text>
+          <Text fontSize="xs" color="text.muted">({gameState.borneOff[myColor === 'white' ? 'black' : 'white']}/15)</Text>
           <Text fontSize="sm" fontWeight="700">{oppInfo?.displayName ?? 'Rakip'}</Text>
           <Box w="14px" h="14px" borderRadius="full" bg={myColor === 'white' ? '#2a1f1f' : '#e8e0d0'} borderWidth="1px" borderColor="border.subtle" />
         </HStack>
@@ -343,8 +469,10 @@ export function TavlaGame({ user }: TavlaGameProps) {
         <TavlaBoard
           state={gameState}
           myColor={myColor}
+          flip={flip}
           selected={selected}
           validMoves={validMoves}
+          animDice={animDice}
           onPointClick={handlePointClick}
         />
       </Box>
@@ -352,7 +480,13 @@ export function TavlaGame({ user }: TavlaGameProps) {
       {/* Action buttons */}
       <HStack gap={3}>
         {isMyTurn && gameState.phase === 'rolling' && (
-          <Button colorPalette="brand" variant="solid" size="lg" onClick={handleRoll}>
+          <Button
+            colorPalette="brand"
+            variant="solid"
+            size="lg"
+            onClick={handleRoll}
+            loading={isAnimating}
+          >
             Zar At 🎲
           </Button>
         )}
@@ -366,12 +500,14 @@ export function TavlaGame({ user }: TavlaGameProps) {
             variant="solid"
             colorPalette="brand"
             onClick={() => {
+              sessionStorage.removeItem(STORAGE_KEY);
               setPhase('lobby');
               setGameState(null);
               setCreatedCode(null);
               setOpponentLeft(false);
               setSelected(null);
               setValidMoves([]);
+              prevPhaseRef.current = null;
             }}
           >
             Yeni Oyun
