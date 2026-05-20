@@ -1,14 +1,25 @@
 'use client';
 
+import { useEffect } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { WordleGame } from '@/components/wordle/WordleGame';
 import { getDailyWord } from '@/lib/wordleWords';
 import { todayLocal } from '@/lib/date';
 import { Box, Heading, Text, HStack, Link } from '@chakra-ui/react';
+import { useAuthStore } from '@/store/authStore';
+import { useRouter } from '@/lib/navigation';
 
 export default function WordlePage() {
+  const { user, isInitialized } = useAuthStore();
+  const router = useRouter();
   const word   = getDailyWord();
   const today  = todayLocal();
+
+  useEffect(() => {
+    if (isInitialized && !user) router.replace('/login');
+  }, [isInitialized, user, router]);
+
+  if (!user) return null;
 
   return (
     <AppShell>

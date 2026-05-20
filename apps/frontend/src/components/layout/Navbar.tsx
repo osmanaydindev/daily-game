@@ -32,6 +32,7 @@ export function Navbar() {
     { href: '/' as const, label: t('home') },
     { href: '/leaderboard' as const, label: t('leaderboard') },
     { href: '/wordle' as const, label: t('wordle') },
+    { href: '/parolla' as const, label: t('parolla') },
     { href: '/history' as const, label: t('history') },
     { href: '/games' as const, label: t('games') },
   ];

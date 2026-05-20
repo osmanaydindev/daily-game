@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Box, VStack, HStack, Text, Button, Alert,
+  Box, VStack, HStack, Text, Alert,
 } from '@chakra-ui/react';
 import { api } from '@/lib/api';
 import { todayLocal } from '@/lib/date';
@@ -26,7 +26,7 @@ interface SavedState {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_GUESSES = 6;
 const WORD_LENGTH  = 5;
-const STORAGE_KEY  = 'wordle-state';
+const wordleStorageKey = (userId: string) => `wordle-state-${userId}`;
 
 const KEYBOARD_ROWS = [
   ['E', 'R', 'T', 'Y', 'U', 'İ', 'O', 'P', 'Ğ', 'Ü'],
@@ -144,10 +144,16 @@ function KeyboardKey({
       display="flex"
       alignItems="center"
       justifyContent="center"
-      h="58px"
-      minW={isAction ? '52px' : '36px'}
+      h={{ base: '42px', md: '58px' }}
+      minW={isAction
+        ? { base: '38px', md: '52px' }
+        : { base: '27px', md: '36px' }
+      }
       px={isAction ? 1 : 0}
-      fontSize={isAction ? '10px' : 'sm'}
+      fontSize={isAction
+        ? { base: '8px', md: '10px' }
+        : { base: '11px', md: 'sm' }
+      }
       fontWeight="700"
       borderRadius="6px"
       bg={colored ? KEY_BG[keyStatus] : 'surface.card'}
@@ -188,8 +194,9 @@ function ResultSummary({ guesses, target, status }: { guesses: string[]; target:
 // ─── Main component ───────────────────────────────────────────────────────────
 export function WordleGame() {
   const { user } = useAuthStore();
-  const target = getDailyWord();
-  const today  = todayLocal();
+  const target     = getDailyWord();
+  const today      = todayLocal();
+  const STORAGE_KEY = wordleStorageKey(user?._id ?? 'guest');
 
   const [guesses,     setGuesses]     = useState<string[]>([]);
   const [currentInput, setCurrentInput] = useState('');
@@ -198,6 +205,8 @@ export function WordleGame() {
   const [submitMsg,   setSubmitMsg]   = useState<string | null>(null);
   const [error,       setError]       = useState<string | null>(null);
   const [ready,       setReady]       = useState(false);
+
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
 
   // ── Preload valid words dictionary ────────────────────────────────────────
   useEffect(() => { loadValidWords(); }, []);
@@ -287,9 +296,10 @@ export function WordleGame() {
     }
   }, [status, currentInput, guesses, target]);
 
-  // ── Physical keyboard ─────────────────────────────────────────────────────
+  // ── Physical keyboard (desktop) — skip when hidden input is focused to avoid double input ──
   useEffect(() => {
     const handle = (e: KeyboardEvent) => {
+      if (document.activeElement === hiddenInputRef.current) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'Enter')     { submitGuess(); return; }
       if (e.key === 'Backspace') { deleteLetter(); return; }
@@ -302,16 +312,62 @@ export function WordleGame() {
     return () => window.removeEventListener('keydown', handle);
   }, [addLetter, deleteLetter, submitGuess]);
 
+  // ── Native mobile keyboard handlers ──────────────────────────────────────
+  const focusHiddenInput = useCallback(() => {
+    if (status !== 'playing') return;
+    hiddenInputRef.current?.focus();
+  }, [status]);
+
+  const handleHiddenKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter')     { submitGuess(); e.preventDefault(); return; }
+    if (e.key === 'Backspace') { deleteLetter(); e.preventDefault(); return; }
+  }, [submitGuess, deleteLetter]);
+
+  const handleHiddenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    for (const char of val) {
+      const upper = char.toLocaleUpperCase('tr-TR');
+      if (VALID_LETTERS.has(upper)) addLetter(upper);
+    }
+    e.target.value = '';
+  }, [addLetter]);
+
   // ── Derived state ─────────────────────────────────────────────────────────
   const keyStatuses = buildKeyStatuses(guesses, target);
 
   if (!ready) return null;
 
   return (
-    <VStack gap={4} align="center" w="full">
+    <VStack gap={4} align="center" w="full" position="relative">
+
+      {/* Hidden input — focuses on board tap to open native mobile keyboard */}
+      <input
+        ref={hiddenInputRef}
+        onKeyDown={handleHiddenKeyDown}
+        onChange={handleHiddenChange}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="characters"
+        spellCheck={false}
+        enterKeyHint="done"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          opacity: 0,
+          width: '1px',
+          height: '1px',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Board */}
-      <VStack gap={1.5}>
+      <VStack
+        gap={1.5}
+        onClick={focusHiddenInput}
+        cursor={status === 'playing' ? 'text' : 'default'}
+      >
         {Array.from({ length: MAX_GUESSES }, (_, rowIdx) => {
           const completedGuess = guesses[rowIdx];
           const isCurrent = rowIdx === guesses.length && status === 'playing';
@@ -336,6 +392,18 @@ export function WordleGame() {
           );
         })}
       </VStack>
+
+      {/* Mobile hint */}
+      {status === 'playing' && (
+        <Text
+          display={{ base: 'block', md: 'none' }}
+          fontSize="xs"
+          color="text.muted"
+          mt={-2}
+        >
+          Karelere dokunarak klavyenden yazabilirsin
+        </Text>
+      )}
 
       {/* Error */}
       {error && (
