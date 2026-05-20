@@ -351,7 +351,7 @@ export function TavlaGame({ user }: TavlaGameProps) {
 
       {/* Action buttons */}
       <HStack gap={3}>
-        {isMyTurn && gameState.phase === 'rolling' && gameState.phase !== 'ended' && (
+        {isMyTurn && gameState.phase === 'rolling' && (
           <Button colorPalette="brand" variant="solid" size="lg" onClick={handleRoll}>
             Zar At 🎲
           </Button>
