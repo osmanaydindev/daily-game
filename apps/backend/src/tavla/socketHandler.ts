@@ -8,7 +8,7 @@ import {
 } from './engine';
 import type { Move } from './engine';
 
-interface JwtPayload { id: string; email: string; role: string; }
+interface JwtPayload { sub: string; role: string; }
 
 export function attachTavlaSocket(httpServer: HttpServer): void {
   const io = new Server(httpServer, {
@@ -26,7 +26,7 @@ export function attachTavlaSocket(httpServer: HttpServer): void {
     if (!token) return next(new Error('Unauthorized'));
     try {
       const payload = jwt.verify(token, env.ACCESS_TOKEN_SECRET) as JwtPayload;
-      socket.data.userId = payload.id;
+      socket.data.userId = payload.sub;
       next();
     } catch {
       next(new Error('Invalid token'));
