@@ -5,6 +5,7 @@ import { Box, VStack, HStack, Text, Input, Spinner, Alert } from '@chakra-ui/rea
 import { api } from '@/lib/api';
 import { todayLocal } from '@/lib/date';
 import { getDailyQuestions, checkAnswer } from '@/lib/parollaData';
+import { useAuthStore } from '@/store/authStore';
 import type { AxiosError } from 'axios';
 import type { ApiResponse } from '@dail-game/types';
 
@@ -440,7 +441,7 @@ export function ParollaGame() {
             return (
               <Box
                 key={r.letter}
-                ref={el => { bubbleRefsArr.current[i] = el; }}
+                ref={(el: HTMLDivElement | null) => { bubbleRefsArr.current[i] = el; }}
                 w={{ base: '48px', md: '56px' }}
                 h={{ base: '48px', md: '56px' }}
                 borderRadius="full"
