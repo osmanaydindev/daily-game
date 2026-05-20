@@ -10,6 +10,67 @@ import { useAuthStore } from '@/store/authStore';
 import { useRouter } from '@/lib/navigation';
 import { api } from '@/lib/api';
 
+const TILE_COLORS = ['#538d4e', '#b59f3b', '#3a3a3c', '#538d4e', '#b59f3b'];
+
+function WordleCompletedCard({ attempt }: { attempt: number }) {
+  const today = todayLocal();
+  const isDNF = attempt === 7;
+  const label = isDNF ? 'DNF' : `${attempt}/6`;
+
+  const rows = Array.from({ length: 6 }, (_, i) => {
+    const isGuessed = i < (isDNF ? 6 : attempt);
+    return Array.from({ length: 5 }, (_, j) => {
+      if (!isGuessed) return '#2a2a2c';
+      if (i === (isDNF ? 5 : attempt - 1) && !isDNF) return '#538d4e';
+      return TILE_COLORS[(i * 3 + j) % TILE_COLORS.length];
+    });
+  });
+
+  return (
+    <Box
+      bg="surface.card"
+      borderRadius="2xl"
+      borderWidth="1px"
+      borderColor="border.subtle"
+      p={8}
+      maxW="360px"
+      mx="auto"
+      textAlign="center"
+      boxShadow="0 8px 32px rgba(0,0,0,0.12)"
+    >
+      {/* Mini tile grid */}
+      <VStack gap={1} mb={6} align="center">
+        {rows.map((row, ri) => (
+          <HStack key={ri} gap={1} justify="center">
+            {row.map((color, ci) => (
+              <Box
+                key={ci}
+                w="28px"
+                h="28px"
+                borderRadius="4px"
+                bg={color}
+                opacity={ri < (isDNF ? 6 : attempt) ? 1 : 0.15}
+              />
+            ))}
+          </HStack>
+        ))}
+      </VStack>
+
+      <Text fontSize="xs" fontWeight="700" letterSpacing="widest" color="text.muted" mb={1} textTransform="uppercase">
+        Wordle — {today}
+      </Text>
+
+      <Text fontSize="4xl" fontWeight="900" letterSpacing="-1px" color={isDNF ? 'red.400' : 'green.400'} mb={1}>
+        {label}
+      </Text>
+
+      <Text fontSize="sm" color="text.muted">
+        {isDNF ? 'Bugün olmadı, yarın tekrar!' : 'Tebrikler! Yarın yeni kelimeyle görüşürüz.'}
+      </Text>
+    </Box>
+  );
+}
+
 export default function WordlePage() {
   const { user, isInitialized } = useAuthStore();
   const router = useRouter();
@@ -17,7 +78,7 @@ export default function WordlePage() {
   const today  = todayLocal();
 
   const [checking, setChecking] = useState(true);
-  const [alreadyPlayed, setAlreadyPlayed] = useState(false);
+  const [entry, setEntry] = useState<{ attempt: number } | null>(null);
 
   useEffect(() => {
     if (isInitialized && !user) router.replace('/login');
@@ -28,7 +89,7 @@ export default function WordlePage() {
     api.get('/entries', { params: { gameSlug: 'wordle', from: today, to: today } })
       .then((res) => {
         const entries = res.data?.data ?? [];
-        setAlreadyPlayed(entries.length > 0);
+        if (entries.length > 0) setEntry({ attempt: entries[0].scores.attempt });
       })
       .catch(() => {})
       .finally(() => setChecking(false));
@@ -44,16 +105,11 @@ export default function WordlePage() {
     );
   }
 
-  if (alreadyPlayed) {
+  if (entry) {
     return (
       <AppShell>
-        <Box maxW="540px" mx="auto" textAlign="center" pt={16}>
-          <Text fontSize="4xl" mb={4}>✅</Text>
-          <Heading size="lg" fontWeight="800" mb={2}>Bugünkü Wordle tamamlandı</Heading>
-          <Text color="text.muted" fontSize="sm">Yarın yeni bir kelimeyle tekrar gel!</Text>
-          <VStack mt={6} gap={2}>
-            <Text fontSize="sm" color="text.muted" fontFamily="mono">{today}</Text>
-          </VStack>
+        <Box maxW="540px" mx="auto" pt={10}>
+          <WordleCompletedCard attempt={entry.attempt} />
         </Box>
       </AppShell>
     );
