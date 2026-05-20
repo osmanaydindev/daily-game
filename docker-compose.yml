@@ -24,7 +24,6 @@ services:
       - ./apps/backend/.env
     environment:
       MONGODB_URI: mongodb://mongodb:27017/dail-game
-      FRONTEND_URL: http://localhost:3004
     ports:
       - '5002:5000'
 
@@ -32,8 +31,6 @@ services:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: http://localhost:5002/api
     container_name: dail-game-web
     restart: unless-stopped
     env_file:
