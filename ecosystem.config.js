@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'dail-game-api',
       cwd: './apps/backend',
-      script: 'dist/server.js',
+      script: 'dist/apps/backend/src/server.js',
       interpreter: 'node',
       env_production: {
         NODE_ENV: 'production',
