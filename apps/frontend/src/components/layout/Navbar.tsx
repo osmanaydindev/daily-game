@@ -33,6 +33,7 @@ export function Navbar() {
     { href: '/leaderboard' as const, label: t('leaderboard') },
     { href: '/wordle' as const, label: t('wordle') },
     { href: '/parolla' as const, label: t('parolla') },
+    { href: '/tavla' as const, label: 'Tavla' },
     { href: '/history' as const, label: t('history') },
     { href: '/games' as const, label: t('games') },
   ];
