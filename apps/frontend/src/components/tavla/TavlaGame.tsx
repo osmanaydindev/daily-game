@@ -9,7 +9,53 @@ import type { GameState, Move, Color, PlayerInfo } from './types';
 import { createTavlaSocket } from '@/lib/socket';
 import type { Socket } from 'socket.io-client';
 
-// ── Dice sound via Web Audio API ──────────────────────────────────────────────
+// ── Sounds via Web Audio API ──────────────────────────────────────────────────
+function playMoveSound() {
+  try {
+    const ctx = new AudioContext();
+    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.09), ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      const t = i / ctx.sampleRate;
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 55) * 0.65;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 380;
+    filter.Q.value = 0.9;
+    src.connect(filter);
+    filter.connect(ctx.destination);
+    src.start();
+    setTimeout(() => ctx.close(), 400);
+  } catch {}
+}
+
+function playHitSound() {
+  try {
+    const ctx = new AudioContext();
+    ([0, 0.045] as const).forEach((delay, i) => {
+      const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.1), ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let j = 0; j < data.length; j++) {
+        const t = j / ctx.sampleRate;
+        data[j] = (Math.random() * 2 - 1) * Math.exp(-t * (i === 0 ? 90 : 45)) * (i === 0 ? 0.95 : 0.5);
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = i === 0 ? 750 : 280;
+      filter.Q.value = 1;
+      src.connect(filter);
+      filter.connect(ctx.destination);
+      src.start(ctx.currentTime + delay);
+    });
+    setTimeout(() => ctx.close(), 500);
+  } catch {}
+}
+
 function playDiceSound() {
   try {
     const actx = new AudioContext();
@@ -180,6 +226,10 @@ export function TavlaGame({ user }: TavlaGameProps) {
   const animatingRef = useRef(false);
   const pendingStateRef = useRef<GameState | null>(null);
   const rejoinAttemptRef = useRef(false);
+  const prevStateRef = useRef<GameState | null>(null);
+  const prevTurnRef = useRef<Color | null>(null);
+  const justMovedRef = useRef(false);
+  const myColorRef = useRef<Color>('white');
 
   const [phase, setPhase] = useState<'lobby' | 'waiting' | 'playing'>('lobby');
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -193,6 +243,10 @@ export function TavlaGame({ user }: TavlaGameProps) {
   const [joining, setJoining] = useState(false);
   const [animDice, setAnimDice] = useState<number[] | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showTurnNotif, setShowTurnNotif] = useState(false);
+
+  // Keep myColorRef in sync so animation callbacks can read current color
+  useEffect(() => { myColorRef.current = myColor; }, [myColor]);
 
   // ── Dice animation ─────────────────────────────────────────────────────────
   const startDiceAnimation = useCallback((finalState: GameState) => {
@@ -219,8 +273,15 @@ export function TavlaGame({ user }: TavlaGameProps) {
           setIsAnimating(false);
           animatingRef.current = false;
           const s = pendingStateRef.current!;
-          setGameState(s);
+          prevStateRef.current = s;
           prevPhaseRef.current = s.phase;
+          // Show "Sıra Sende" when turn switches to us
+          if (s.turn === myColorRef.current && prevTurnRef.current !== myColorRef.current && s.phase === 'rolling') {
+            setShowTurnNotif(true);
+            setTimeout(() => setShowTurnNotif(false), 2200);
+          }
+          prevTurnRef.current = s.turn;
+          setGameState(s);
           setSelected(null);
           setValidMoves([]);
         }
@@ -247,6 +308,8 @@ export function TavlaGame({ user }: TavlaGameProps) {
     }: { state: GameState; myColor: Color; players: PlayerInfo[]; code: string }) => {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ code, color: mc }));
       prevPhaseRef.current = state.phase;
+      prevStateRef.current = state;
+      prevTurnRef.current = state.turn;
       setGameState(state);
       setMyColor(mc);
       setPlayers(pl);
@@ -262,6 +325,8 @@ export function TavlaGame({ user }: TavlaGameProps) {
       rejoinAttemptRef.current = false;
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ code, color: mc }));
       prevPhaseRef.current = state.phase;
+      prevStateRef.current = state;
+      prevTurnRef.current = state.turn;
       setGameState(state);
       setMyColor(mc);
       setPlayers(pl);
@@ -276,6 +341,23 @@ export function TavlaGame({ user }: TavlaGameProps) {
         prevPhaseRef.current = state.phase;
         startDiceAnimation(state);
       } else if (!animatingRef.current) {
+        const prev = prevStateRef.current;
+        // Detect opponent move sounds
+        if (prev) {
+          const boardChanged =
+            state.board.some((v, i) => v !== prev.board[i]) ||
+            state.borneOff.white !== prev.borneOff.white ||
+            state.borneOff.black !== prev.borneOff.black ||
+            state.bar.white !== prev.bar.white ||
+            state.bar.black !== prev.bar.black;
+
+          if (boardChanged && !justMovedRef.current) {
+            const hitHappened = state.bar.white > prev.bar.white || state.bar.black > prev.bar.black;
+            hitHappened ? playHitSound() : playMoveSound();
+          }
+          justMovedRef.current = false;
+        }
+        prevStateRef.current = state;
         prevPhaseRef.current = state.phase;
         setGameState(state);
         setSelected(null);
@@ -355,6 +437,8 @@ export function TavlaGame({ user }: TavlaGameProps) {
       if (selected !== null) {
         const offMove = validMoves.find(m => m.from === selected && m.to === 'off');
         if (offMove) {
+          playMoveSound();
+          justMovedRef.current = true;
           socketRef.current?.emit('tavla:move', offMove);
           setSelected(null);
           setValidMoves([]);
@@ -371,6 +455,12 @@ export function TavlaGame({ user }: TavlaGameProps) {
         m.from === selected && m.to === idx,
       );
       if (matchingMoves.length > 0) {
+        const dest = matchingMoves[0].to;
+        const isHit = typeof dest === 'number' && (
+          myColor === 'white' ? gameState.board[dest] === -1 : gameState.board[dest] === 1
+        );
+        isHit ? playHitSound() : playMoveSound();
+        justMovedRef.current = true;
         socketRef.current?.emit('tavla:move', matchingMoves[0]);
         setSelected(null);
         setValidMoves([]);
@@ -431,6 +521,30 @@ export function TavlaGame({ user }: TavlaGameProps) {
   };
 
   return (
+    <Box position="relative" w="full">
+    {/* Turn notification */}
+    <Box
+      position="fixed"
+      bottom="90px"
+      left="50%"
+      transform={`translateX(-50%) translateY(${showTurnNotif ? '0' : '16px'})`}
+      opacity={showTurnNotif ? 1 : 0}
+      transition="opacity 0.25s ease, transform 0.25s ease"
+      pointerEvents="none"
+      zIndex={50}
+      bg="green.600"
+      color="white"
+      px={6}
+      py={3}
+      borderRadius="full"
+      fontWeight="800"
+      fontSize="md"
+      boxShadow="0 4px 24px rgba(0,0,0,0.35)"
+      whiteSpace="nowrap"
+    >
+      Sıra Sende! 🎲
+    </Box>
+
     <VStack gap={3} align="center" w="full">
       {error && (
         <Alert.Root status="error" borderRadius="lg" maxW="600px" w="full">
@@ -515,5 +629,6 @@ export function TavlaGame({ user }: TavlaGameProps) {
         )}
       </HStack>
     </VStack>
+    </Box>
   );
 }
