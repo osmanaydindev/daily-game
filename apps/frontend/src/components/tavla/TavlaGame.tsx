@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box, VStack, HStack, Text, Button, Input, Alert, Spinner,
 } from '@chakra-ui/react';
@@ -213,6 +213,107 @@ function Lobby({
   );
 }
 
+// ── Drag-to-roll dice ─────────────────────────────────────────────────────────
+function DragDice({
+  boardRef,
+  onRoll,
+  disabled,
+}: {
+  boardRef: React.RefObject<HTMLDivElement | null>;
+  onRoll: () => void;
+  disabled: boolean;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const movedRef = useRef(false);
+
+  const tryRoll = useCallback((clientX: number, clientY: number) => {
+    setDragging(false);
+    if (!movedRef.current) { onRoll(); return; } // tap = roll
+    if (!boardRef.current) return;
+    const rect = boardRef.current.getBoundingClientRect();
+    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+      onRoll();
+    }
+  }, [boardRef, onRoll]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (disabled) return;
+    movedRef.current = false;
+    const t = e.touches[0];
+    setPos({ x: t.clientX, y: t.clientY });
+    setDragging(true);
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    movedRef.current = true;
+    const t = e.touches[0];
+    setPos({ x: t.clientX, y: t.clientY });
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const t = e.changedTouches[0];
+    tryRoll(t.clientX, t.clientY);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (disabled) return;
+    movedRef.current = false;
+    setPos({ x: e.clientX, y: e.clientY });
+    setDragging(true);
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => { movedRef.current = true; setPos({ x: e.clientX, y: e.clientY }); };
+    const onUp   = (e: MouseEvent) => tryRoll(e.clientX, e.clientY);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [dragging, tryRoll]);
+
+  return (
+    <>
+      <Box
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        cursor={disabled ? 'default' : 'grab'}
+        userSelect="none"
+        style={{ touchAction: 'none' }}
+        opacity={disabled ? 0.4 : 1}
+        display="flex"
+        flexDir="column"
+        alignItems="center"
+        gap={1}
+      >
+        <Text fontSize="4xl" lineHeight={1}>🎲🎲</Text>
+        {!disabled && (
+          <Text fontSize="xs" color="text.muted" pointerEvents="none">
+            Tut &amp; tahtaya sürükle
+          </Text>
+        )}
+      </Box>
+      {dragging && (
+        <Box
+          position="fixed"
+          style={{
+            left: pos.x - 36,
+            top: pos.y - 36,
+            transform: 'scale(1.35)',
+            pointerEvents: 'none',
+            zIndex: 1000,
+            opacity: 0.85,
+            fontSize: '2.4rem',
+          }}
+        >
+          🎲🎲
+        </Box>
+      )}
+    </>
+  );
+}
+
 // ── Main game component ───────────────────────────────────────────────────────
 interface TavlaGameProps {
   user: { _id: string; displayName: string };
@@ -230,6 +331,7 @@ export function TavlaGame({ user }: TavlaGameProps) {
   const prevTurnRef = useRef<Color | null>(null);
   const justMovedRef = useRef(false);
   const myColorRef = useRef<Color>('white');
+  const boardRef = useRef<HTMLDivElement>(null);
 
   const [phase, setPhase] = useState<'lobby' | 'waiting' | 'playing'>('lobby');
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -554,7 +656,7 @@ export function TavlaGame({ user }: TavlaGameProps) {
       )}
 
       {/* Player info bar */}
-      <HStack justify="space-between" w="full" maxW="720px" px={1}>
+      <HStack justify="space-between" w="full" maxW={{ md: '720px' }} px={1}>
         <HStack gap={2}>
           <Box w="14px" h="14px" borderRadius="full" bg={myColor === 'white' ? '#e8e0d0' : '#2a1f1f'} borderWidth="1px" borderColor="border.subtle" />
           <Text fontSize="sm" fontWeight="700">{myInfo?.displayName ?? 'Sen'}</Text>
@@ -572,9 +674,10 @@ export function TavlaGame({ user }: TavlaGameProps) {
 
       {/* Board */}
       <Box
+        ref={boardRef}
         w="full"
-        maxW="720px"
-        borderRadius="xl"
+        maxW={{ md: '720px' }}
+        borderRadius={{ base: 'none', md: 'xl' }}
         overflow="hidden"
         borderWidth="2px"
         borderColor="border.subtle"
@@ -592,17 +695,9 @@ export function TavlaGame({ user }: TavlaGameProps) {
       </Box>
 
       {/* Action buttons */}
-      <HStack gap={3}>
+      <HStack gap={4} align="center">
         {isMyTurn && gameState.phase === 'rolling' && (
-          <Button
-            colorPalette="brand"
-            variant="solid"
-            size="lg"
-            onClick={handleRoll}
-            loading={isAnimating}
-          >
-            Zar At 🎲
-          </Button>
+          <DragDice boardRef={boardRef} onRoll={handleRoll} disabled={isAnimating} />
         )}
         {gameState.phase !== 'ended' && (
           <Button variant="outline" colorPalette="red" size="sm" onClick={handleResign}>

@@ -44,6 +44,67 @@ function fmtTime(s: number) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
+// ─── Sounds ───────────────────────────────────────────────────────────────────
+function playCorrectSound() {
+  try {
+    const ctx = new AudioContext();
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
+      gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + i * 0.1 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.28);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.1);
+      osc.stop(ctx.currentTime + i * 0.1 + 0.3);
+    });
+    setTimeout(() => ctx.close(), 900);
+  } catch {}
+}
+
+function playWrongSound() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.32);
+    gain.gain.setValueAtTime(0.28, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.42);
+    setTimeout(() => ctx.close(), 600);
+  } catch {}
+}
+
+function playSkipSound() {
+  try {
+    const ctx = new AudioContext();
+    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.18), ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-(i / ctx.sampleRate) * 22) * 0.45;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1800, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(380, ctx.currentTime + 0.18);
+    filter.Q.value = 2;
+    src.connect(filter);
+    filter.connect(ctx.destination);
+    src.start();
+    setTimeout(() => ctx.close(), 400);
+  } catch {}
+}
+
 // ─── Result modal ─────────────────────────────────────────────────────────────
 function ResultModal({
   results,
@@ -380,11 +441,13 @@ export function ParollaGame() {
       setTimeout(() => setInputError(null), 2500);
       return;
     }
+    const isCorrect = checkAnswer(trimmed, results[currentIdx].correctAnswer);
+    isCorrect ? playCorrectSound() : playWrongSound();
     const updated = [...results];
     updated[currentIdx] = {
       ...updated[currentIdx],
       userAnswer: trimmed,
-      status: checkAnswer(trimmed, results[currentIdx].correctAnswer) ? 'correct' : 'wrong',
+      status: isCorrect ? 'correct' : 'wrong',
     };
     setResults(updated);
     advance(updated, currentIdx);
@@ -393,6 +456,7 @@ export function ParollaGame() {
   // ── Skip ──────────────────────────────────────────────────────────────────
   const handleSkip = useCallback(() => {
     if (gameStatus !== 'playing') return;
+    playSkipSound();
     const updated = [...results];
     updated[currentIdx] = { ...updated[currentIdx], userAnswer: '', status: 'skipped' };
     setResults(updated);
@@ -511,6 +575,26 @@ export function ParollaGame() {
       {/* Input + PAS */}
       {gameStatus === 'playing' && (
         <Box px={4} pb={4} w="full" maxW="600px" mx="auto">
+          {/* Letter indicator — stays visible above keyboard on mobile */}
+          {current && (
+            <HStack justify="center" mb={3} gap={3}>
+              <Box
+                w="44px" h="44px"
+                borderRadius="full"
+                display="flex" alignItems="center" justifyContent="center"
+                fontWeight="900" fontSize="xl"
+                bg="surface.card"
+                borderWidth="3px" borderColor="white"
+                boxShadow="0 2px 12px rgba(0,0,0,0.4)"
+                flexShrink={0}
+              >
+                {current.letter}
+              </Box>
+              <Text fontSize="sm" color="text.muted">
+                harfiyle başlayan bir kelime yaz
+              </Text>
+            </HStack>
+          )}
           {inputError && (
             <Box
               mb={2}
