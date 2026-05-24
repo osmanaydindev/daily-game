@@ -140,13 +140,15 @@ export default function WordlePage() {
 
   useEffect(() => {
     if (!user) return;
-    // localStorage'dan gerçek tahminleri oku
+    // localStorage'dan gerçek tahminleri oku (prefix tarama — ID format bağımsız)
     try {
-      const raw = localStorage.getItem(`wordle-state-${user._id}`);
-      if (raw) {
-        const saved = JSON.parse(raw);
-        if (saved.date === today && Array.isArray(saved.guesses)) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith('wordle-state-')) continue;
+        const saved = JSON.parse(localStorage.getItem(key)!);
+        if (saved.date === today && Array.isArray(saved.guesses) && saved.guesses.length > 0) {
           setLocalGuesses(saved.guesses);
+          break;
         }
       }
     } catch { /* ignore */ }

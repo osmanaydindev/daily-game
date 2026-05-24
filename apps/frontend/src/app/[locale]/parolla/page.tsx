@@ -197,13 +197,15 @@ export default function ParollaPage() {
 
   useEffect(() => {
     if (!user) return;
-    // localStorage'dan detaylı sonuçları oku
+    // localStorage'dan detaylı sonuçları oku (prefix tarama — ID format bağımsız)
     try {
-      const raw = localStorage.getItem(`parolla-game-state-${user._id}`);
-      if (raw) {
-        const saved = JSON.parse(raw);
-        if (saved.date === today && saved.results?.length > 0) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith('parolla-game-state-')) continue;
+        const saved = JSON.parse(localStorage.getItem(key)!);
+        if (saved.date === today && Array.isArray(saved.results) && saved.results.length > 0) {
           setLocalResults(saved.results);
+          break;
         }
       }
     } catch { /* ignore */ }
