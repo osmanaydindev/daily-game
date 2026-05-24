@@ -105,6 +105,92 @@ function playSkipSound() {
   } catch {}
 }
 
+// ─── Inline answer key (revisit view) ────────────────────────────────────────
+function InlineAnswerKey({
+  results,
+  onShowStats,
+}: {
+  results: LetterResult[];
+  onShowStats: () => void;
+}) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const icon = (s: LetterStatus) =>
+    s === 'correct' ? '✓' : s === 'wrong' ? '✗' : s === 'skipped' ? '→' : '–';
+  const iconColor = (s: LetterStatus) =>
+    s === 'correct' ? '#538d4e' : s === 'wrong' ? '#c0392b' : s === 'skipped' ? '#c9a227' : 'text.muted';
+
+  return (
+    <Box px={4} w="full" maxW="480px" mx="auto" pb={6}>
+      <HStack justify="space-between" mb={3} mt={4}>
+        <Text fontWeight="800" fontSize="sm" color="text.muted" letterSpacing="wider">
+          CEVAP ANAHTARI
+        </Text>
+        <Box
+          as="button"
+          fontSize="xs"
+          color="text.muted"
+          textDecoration="underline"
+          cursor="pointer"
+          onClick={onShowStats}
+        >
+          İstatistikleri gör
+        </Box>
+      </HStack>
+
+      <VStack gap={0} align="stretch" borderTopWidth="1px" borderColor="border.subtle">
+        {results.map(r => (
+          <Box
+            key={r.letter}
+            borderBottomWidth="1px"
+            borderColor="border.subtle"
+            cursor="pointer"
+            onClick={() => setExpanded(prev => prev === r.letter ? null : r.letter)}
+            _hover={{ bg: 'surface.subtle' }}
+            transition="background 0.1s"
+          >
+            <HStack py={3} px={1} justify="space-between">
+              <HStack gap={3}>
+                <Text w="18px" fontWeight="800" fontSize="md" color={iconColor(r.status)}>
+                  {icon(r.status)}
+                </Text>
+                <VStack gap={0} align="start">
+                  <Text fontSize="sm" fontWeight="700">
+                    {r.correctAnswer.toLocaleUpperCase('tr-TR')}
+                  </Text>
+                  <Text fontSize="xs" color="text.muted"
+                    overflow="hidden"
+                    style={{ display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}
+                  >
+                    {r.question}
+                  </Text>
+                </VStack>
+              </HStack>
+              <HStack gap={2} flexShrink={0}>
+                <Text fontSize="sm" color="text.muted" fontWeight="700">{r.letter}</Text>
+                <Text fontSize="xs" color="text.muted">{expanded === r.letter ? '▲' : '▼'}</Text>
+              </HStack>
+            </HStack>
+
+            {expanded === r.letter && (
+              <Box px={1} pb={3}>
+                <Box bg="surface.subtle" borderRadius="lg" p={3} borderWidth="1px" borderColor="border.subtle">
+                  <Text fontSize="xs" color="text.muted" mb={1}>Soru</Text>
+                  <Text fontSize="sm" fontWeight="600" mb={3}>{r.question}</Text>
+                  <Text fontSize="xs" color="text.muted" mb={1}>Verilen cevap</Text>
+                  <Text fontSize="sm" fontWeight="600" color={iconColor(r.status) !== 'text.muted' ? iconColor(r.status) : undefined}>
+                    {r.userAnswer ? r.userAnswer.toLocaleUpperCase('tr-TR') : '—'}
+                  </Text>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        ))}
+      </VStack>
+    </Box>
+  );
+}
+
 // ─── Result modal ─────────────────────────────────────────────────────────────
 function ResultModal({
   results,
@@ -553,24 +639,16 @@ export function ParollaGame() {
             {current.question}
           </Text>
         )}
-        {gameStatus === 'finished' && !showModal && (
-          <Box
-            as="button"
-            px={6} py={3}
-            borderRadius="xl"
-            bg="surface.card"
-            borderWidth="1px"
-            borderColor="border.subtle"
-            fontWeight="700"
-            fontSize="sm"
-            cursor="pointer"
-            _hover={{ opacity: 0.8 }}
-            onClick={() => setShowModal(true)}
-          >
-            Sonuçları Gör
-          </Box>
-        )}
+        {gameStatus === 'finished' && !showModal && null}
       </Box>
+
+      {/* Inline answer key — revisit / after modal closed */}
+      {gameStatus === 'finished' && !showModal && (
+        <InlineAnswerKey
+          results={results}
+          onShowStats={() => setShowModal(true)}
+        />
+      )}
 
       {/* Input + PAS */}
       {gameStatus === 'playing' && (

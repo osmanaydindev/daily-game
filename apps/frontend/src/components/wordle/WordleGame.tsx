@@ -184,9 +184,6 @@ function ResultSummary({ guesses, target, status }: { guesses: string[]; target:
           {evaluateGuess(g, target).map(emoji).join('')}
         </Text>
       ))}
-      {status === 'lost' && (
-        <Text fontSize="xs" color="text.muted" mt={1}>Kelime: <strong>{target}</strong></Text>
-      )}
     </VStack>
   );
 }
@@ -362,6 +359,13 @@ export function WordleGame() {
         }}
       />
 
+      {/* Board label — only when game over */}
+      {status !== 'playing' && (
+        <Text fontSize="xs" color="text.muted" letterSpacing="wider" fontWeight="700">
+          BUGÜNKÜ TAHMİNLERİN
+        </Text>
+      )}
+
       {/* Board */}
       <VStack
         gap={1.5}
@@ -426,6 +430,12 @@ export function WordleGame() {
             {status === 'won' ? '🎉 Tebrikler!' : '😔 Kaybettiniz'}
           </Text>
           <ResultSummary guesses={guesses} target={target} status={status} />
+          <Text fontSize="sm" color="text.muted" mt={3}>
+            Kelime:{' '}
+            <Text as="span" fontWeight="800" color={status === 'won' ? '#538d4e' : '#c0392b'}>
+              {target}
+            </Text>
+          </Text>
           {submitMsg && (
             <Alert.Root
               status={submitMsg.includes('kaydedildi') ? 'success' : 'info'}
