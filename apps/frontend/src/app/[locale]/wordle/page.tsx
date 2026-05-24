@@ -10,21 +10,47 @@ import { useAuthStore } from '@/store/authStore';
 import { useRouter } from '@/lib/navigation';
 import { api } from '@/lib/api';
 
-const TILE_COLORS = ['#538d4e', '#b59f3b', '#3a3a3c', '#538d4e', '#b59f3b'];
+// ─── Tile evaluation (aynı WordleGame mantığı) ───────────────────────────────
+type TileStatus = 'correct' | 'present' | 'absent' | 'empty';
 
-function WordleCompletedCard({ attempt }: { attempt: number }) {
+function evaluateGuess(guess: string, target: string): TileStatus[] {
+  const result: TileStatus[] = Array(5).fill('absent');
+  const targetArr = target.split('');
+  const guessArr  = guess.split('');
+  const used      = Array(5).fill(false);
+  for (let i = 0; i < 5; i++) {
+    if (guessArr[i] === targetArr[i]) { result[i] = 'correct'; used[i] = true; }
+  }
+  for (let i = 0; i < 5; i++) {
+    if (result[i] === 'correct') continue;
+    for (let j = 0; j < 5; j++) {
+      if (!used[j] && guessArr[i] === targetArr[j]) { result[i] = 'present'; used[j] = true; break; }
+    }
+  }
+  return result;
+}
+
+const TILE_BG: Record<TileStatus, string> = {
+  correct: '#538d4e',
+  present: '#b59f3b',
+  absent:  '#3a3a3c',
+  empty:   '#2a2a2c',
+};
+
+// ─── Completed card ───────────────────────────────────────────────────────────
+function WordleCompletedCard({
+  attempt,
+  guesses,
+  target,
+}: {
+  attempt: number;
+  guesses: string[];
+  target: string;
+}) {
   const today = todayLocal();
   const isDNF = attempt === 7;
   const label = isDNF ? 'DNF' : `${attempt}/6`;
-
-  const rows = Array.from({ length: 6 }, (_, i) => {
-    const isGuessed = i < (isDNF ? 6 : attempt);
-    return Array.from({ length: 5 }, (_, j) => {
-      if (!isGuessed) return '#2a2a2c';
-      if (i === (isDNF ? 5 : attempt - 1) && !isDNF) return '#538d4e';
-      return TILE_COLORS[(i * 3 + j) % TILE_COLORS.length];
-    });
-  });
+  const hasRealGuesses = guesses.length > 0;
 
   return (
     <Box
@@ -38,30 +64,57 @@ function WordleCompletedCard({ attempt }: { attempt: number }) {
       textAlign="center"
       boxShadow="0 8px 32px rgba(0,0,0,0.12)"
     >
-      {/* Mini tile grid */}
-      <VStack gap={1} mb={6} align="center">
-        {rows.map((row, ri) => (
-          <HStack key={ri} gap={1} justify="center">
-            {row.map((color, ci) => (
-              <Box
-                key={ci}
-                w="28px"
-                h="28px"
-                borderRadius="4px"
-                bg={color}
-                opacity={ri < (isDNF ? 6 : attempt) ? 1 : 0.15}
-              />
-            ))}
-          </HStack>
-        ))}
+      {/* Tile grid */}
+      <VStack gap={1.5} mb={6} align="center">
+        {Array.from({ length: 6 }, (_, rowIdx) => {
+          const guess = guesses[rowIdx];
+          const statuses = guess ? evaluateGuess(guess, target) : null;
+          const isEmpty = !guess;
+
+          return (
+            <HStack key={rowIdx} gap={1.5} justify="center">
+              {Array.from({ length: 5 }, (_, colIdx) => {
+                const letter   = guess?.[colIdx] ?? '';
+                const bg       = statuses ? TILE_BG[statuses[colIdx]] : TILE_BG.empty;
+                const opacity  = isEmpty ? 0.15 : 1;
+                return (
+                  <Box
+                    key={colIdx}
+                    w={{ base: '44px', md: '52px' }}
+                    h={{ base: '44px', md: '52px' }}
+                    borderRadius="4px"
+                    bg={bg}
+                    opacity={opacity}
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    fontSize={{ base: 'lg', md: 'xl' }}
+                    fontWeight="800"
+                    color="white"
+                  >
+                    {hasRealGuesses ? letter : ''}
+                  </Box>
+                );
+              })}
+            </HStack>
+          );
+        })}
       </VStack>
 
       <Text fontSize="xs" fontWeight="700" letterSpacing="widest" color="text.muted" mb={1} textTransform="uppercase">
         Wordle — {today}
       </Text>
 
-      <Text fontSize="4xl" fontWeight="900" letterSpacing="-1px" color={isDNF ? 'red.400' : 'green.400'} mb={1}>
+      <Text fontSize="4xl" fontWeight="900" letterSpacing="-1px" color={isDNF ? 'red.400' : 'green.400'} mb={2}>
         {label}
+      </Text>
+
+      {/* Kelime her zaman göster */}
+      <Text fontSize="sm" color="text.muted" mb={3}>
+        Kelime:{' '}
+        <Text as="span" fontWeight="800" color={isDNF ? 'red.400' : 'green.400'}>
+          {target}
+        </Text>
       </Text>
 
       <Text fontSize="sm" color="text.muted">
@@ -77,8 +130,9 @@ export default function WordlePage() {
   const word   = getDailyWord();
   const today  = todayLocal();
 
-  const [checking, setChecking] = useState(true);
-  const [entry, setEntry] = useState<{ attempt: number } | null>(null);
+  const [checking,    setChecking]    = useState(true);
+  const [entry,       setEntry]       = useState<{ attempt: number } | null>(null);
+  const [localGuesses, setLocalGuesses] = useState<string[]>([]);
 
   useEffect(() => {
     if (isInitialized && !user) router.replace('/login');
@@ -86,6 +140,17 @@ export default function WordlePage() {
 
   useEffect(() => {
     if (!user) return;
+    // localStorage'dan gerçek tahminleri oku
+    try {
+      const raw = localStorage.getItem(`wordle-state-${user._id}`);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.date === today && Array.isArray(saved.guesses)) {
+          setLocalGuesses(saved.guesses);
+        }
+      }
+    } catch { /* ignore */ }
+
     api.get('/entries', { params: { gameSlug: 'wordle', from: today, to: today } })
       .then((res) => {
         const entries = res.data?.data ?? [];
@@ -108,8 +173,8 @@ export default function WordlePage() {
   if (entry) {
     return (
       <AppShell>
-        <Box maxW="540px" mx="auto" pt={10}>
-          <WordleCompletedCard attempt={entry.attempt} />
+        <Box maxW="400px" mx="auto" pt={10} px={4} pb={10}>
+          <WordleCompletedCard attempt={entry.attempt} guesses={localGuesses} target={word} />
         </Box>
       </AppShell>
     );
